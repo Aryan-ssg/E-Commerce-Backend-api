@@ -1,0 +1,53 @@
+# Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Build
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Logs
+*.log
+logs/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Application secrets
+application-local.properties
+application-local.yml
+application-secret.properties
+application-secret.yml
+
+
+
+
+# IDE - VS Code
+.vscode/
+
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# Maven Wrapper (keep scripts, ignore downloaded jar)
+.mvn/wrapper/maven-wrapper.jar

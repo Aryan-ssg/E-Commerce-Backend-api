@@ -1,0 +1,16 @@
+package com.example.Ecommerce.Login.DTOs;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class LoginRequest {
+    @NotBlank(message="Username is required")
+    private String userName;
+    @NotBlank(message = "Password is required")
+    private String password;
+}
