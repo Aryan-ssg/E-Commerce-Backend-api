@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.example.Ecommerce.Common.DTOs.ErrorResponse;
 import com.example.Ecommerce.Common.Exceptions.CategoryAlreadyExistsException;
+import com.example.Ecommerce.Common.Exceptions.InvalidTransitionException;
+import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
+import com.example.Ecommerce.Common.Exceptions.UnauthorizedAccessException;
 import com.example.Ecommerce.Common.Exceptions.UserAlreadyExistsException;
 
 @RestControllerAdvice
@@ -24,5 +27,25 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(409, e.getMessage()));
     }
 
+     @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(404, e.getMessage()));
+    }
+
+      @ExceptionHandler(InvalidTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTransition(InvalidTransitionException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(403, e.getMessage()));
+    }
+
+       @ExceptionHandler(UnauthorizedAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedAccess(UnauthorizedAccessException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(403, e.getMessage()));
+    }
+
     
+
+
 }

@@ -8,6 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.Ecommerce.Common.Exceptions.CategoryAlreadyExistsException;
+import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
+
 @Service
 public class CategoryServiceImpl implements CategoryService {
    
@@ -28,7 +31,7 @@ public class CategoryServiceImpl implements CategoryService {
     public Category createCategories(Category category) {
 
         if(categoryRepository.findByCategoryName(category.getCategoryName()).isPresent()){
-            throw new ResponseStatusException(HttpStatus.CONFLICT,category.getCategoryName()+" Category already exists");
+            throw new CategoryAlreadyExistsException(category.getCategoryName());
         }
 
         return categoryRepository.save(category);
@@ -41,7 +44,7 @@ public class CategoryServiceImpl implements CategoryService {
         Optional<Category> optionalSavedCategory = categoryRepository.findById(categoryId);
 
         Category savedCategory = optionalSavedCategory
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category with category id : "+categoryId + " not found"));
         categoryRepository.delete(savedCategory);
         return "Category removed Successfully";
 
@@ -53,7 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
         Optional<Category> optionalSavedCategory = categoryRepository.findById(categoryId);
 
         Category savedCategory = optionalSavedCategory
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category with category id : "+categoryId + " not found"));
 
         savedCategory.setCategoryName(category.getCategoryName());
 

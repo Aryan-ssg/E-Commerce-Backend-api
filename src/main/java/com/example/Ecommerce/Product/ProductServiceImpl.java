@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.example.Ecommerce.Category.Category;
 import com.example.Ecommerce.Category.CategoryRepository;
+import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -29,8 +30,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product getProductById(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Product not found with id : " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+productId+" not found"));
 
         return product;
 
@@ -40,7 +40,7 @@ public class ProductServiceImpl implements ProductService {
     public List<Product> getProductsByCategoryId(Long categoryId) {
 
         if (!categoryRepository.existsById(categoryId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found with id : " + categoryId);
+            throw new ResourceNotFoundException("Category with categoryid : "+categoryId+" not found");
         }
         return productRepository.findByCategory_CategoryId(categoryId);
     }
@@ -48,8 +48,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product createProduct(Long categoryId, Product product) {
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Category not found with id : " + categoryId));
+                .orElseThrow(() -> new ResourceNotFoundException("Category with categoryid : "+categoryId+" not found"));
 
         product.setCategory(category);
 
@@ -60,8 +59,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product updateProduct(Long productId, Product updatedProduct) {
         Product existingProduct = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Product not found with id : " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+productId+" not found"));
 
         existingProduct.setProductName(updatedProduct.getProductName());
         existingProduct.setProductPrice(updatedProduct.getProductPrice());
@@ -71,8 +69,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Product not found with id : " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+productId+" not found"));
 
         productRepository.delete(product);
 

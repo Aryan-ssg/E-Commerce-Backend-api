@@ -17,6 +17,9 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.Ecommerce.AppUser.AppUser;
 import com.example.Ecommerce.AppUser.AppUserRepository;
 import com.example.Ecommerce.Common.AuthenticationHelper;
+import com.example.Ecommerce.Common.Exceptions.InvalidTransitionException;
+import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
+import com.example.Ecommerce.Common.Exceptions.UnauthorizedAccessException;
 import com.example.Ecommerce.Order.DTOs.request.ChangeShippingAddressRequest;
 import com.example.Ecommerce.Order.DTOs.request.OrderItemsRequest;
 import com.example.Ecommerce.Order.DTOs.request.PlaceOrderRequest;
@@ -95,8 +98,7 @@ public class OrderService {
         String userName = auth.getName();
 
         AppUser user = appUserRepository.findByUserName(userName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "User with username : " + userName + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User with Username : "+userName+" not found"));
 
         Order order = new Order();
 
@@ -111,8 +113,7 @@ public class OrderService {
 
         for (OrderItemsRequest orderItem : request.getOrderItems()) {
             Product product = productRepository.findById(orderItem.getProductId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "Product doesnt exist with product id : " + orderItem.getProductId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+orderItem.getProductId()+" not found"));
 
             OrderItem item = new OrderItem();
 
@@ -149,19 +150,18 @@ public class OrderService {
     public ChangeShippingAddressResponse changeShippingAddress(Long orderId, ChangeShippingAddressRequest request) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : "+orderId + " not found"));
 
 
 
         AppUser currentUser = authenticationHelper.getCurrentUser();
 
         if(!order.getUser().getUserId().equals(currentUser.getUserId())){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to access this order.");
+            throw new UnauthorizedAccessException("Unauthorized access");
         }
           
         if (order.getOrderStatus() != OrderStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Shipping address can only be changed for pending orders.");
+            throw new InvalidTransitionException("Shipping address can only be changed for pending orders.");
         }
 
         order.setShippingAddress(request.getNewShippingAddress());
@@ -176,14 +176,14 @@ public class OrderService {
 
     public UpdateOrderStatusResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order with orderid : "+orderId+" not found"));
 
 
         
         OrderStatus currentStatus = order.getOrderStatus();
 
         if (!currentStatus.canTransitionTo(request.getUpdatedStatus())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Given transition is prohibited");
+            throw new InvalidTransitionException("An order with status : " +order.getOrderStatus() + " can not transition into "+ request.getUpdatedStatus());
         }
         order.setOrderStatus(request.getUpdatedStatus());
         orderRepository.save(order);
@@ -197,14 +197,14 @@ public class OrderService {
     public GetOrderByIdResponse getOrderByOrderId(Long orderId) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order with orderid : "+orderId+" not found"));
 
        
 
         AppUser currentUser = authenticationHelper.getCurrentUser();
 
         if(!order.getUser().getUserId().equals(currentUser.getUserId())){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to access this order.");
+            throw new UnauthorizedAccessException("Unauthorized access");
         }
                 
         // Response
@@ -232,11 +232,11 @@ public class OrderService {
 
     public Order cancelOrder(Long orderId){
           Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order with orderid : "+orderId+" not found"));
 
        
         if(order.getOrderStatus()!=OrderStatus.PENDING){
-            throw new NullPointerException("Only Pending orders can be Cancelled.");
+            throw new InvalidTransitionException("Only Pending orders can be Cancelled.");
         }
         order.setOrderStatus(OrderStatus.CANCELLED);
         return orderRepository.save(order);
