@@ -1,9 +1,12 @@
 package com.example.Ecommerce.AppUser;
 
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+
 import com.example.Ecommerce.AppUser.DTOs.RegisterRequest;
+import com.example.Ecommerce.Common.Exceptions.UserAlreadyExistsException;
 
 @Service
 public class AppUserService {
@@ -24,8 +27,13 @@ public class AppUserService {
 
 
     public void registerUser(RegisterRequest request){
+        if(userRepository.findByUserName(request.getUserName()).isPresent()){
+            throw new UserAlreadyExistsException();
+        }
+
 
         AppUser user = new AppUser();
+
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.USER);

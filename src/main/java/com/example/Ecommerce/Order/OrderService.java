@@ -156,11 +156,11 @@ public class OrderService {
         AppUser currentUser = authenticationHelper.getCurrentUser();
 
         if(!order.getUser().getUserId().equals(currentUser.getUserId())){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "You are not allowed to access this order.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to access this order.");
         }
           
         if (order.getOrderStatus() != OrderStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Shipping address can only be changed for pending orders.");
         }
 
@@ -183,7 +183,7 @@ public class OrderService {
         OrderStatus currentStatus = order.getOrderStatus();
 
         if (!currentStatus.canTransitionTo(request.getUpdatedStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Given transition is prohibited");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Given transition is prohibited");
         }
         order.setOrderStatus(request.getUpdatedStatus());
         orderRepository.save(order);
@@ -204,7 +204,7 @@ public class OrderService {
         AppUser currentUser = authenticationHelper.getCurrentUser();
 
         if(!order.getUser().getUserId().equals(currentUser.getUserId())){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "You are not allowed to access this order.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to access this order.");
         }
                 
         // Response

@@ -31,7 +31,7 @@ public class Category {
     private Long categoryId;
 
     @NotBlank(message = "Category name is required")
-    @Column(unique = true)
+    @Column(unique = true,nullable=false)
     private String categoryName;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)

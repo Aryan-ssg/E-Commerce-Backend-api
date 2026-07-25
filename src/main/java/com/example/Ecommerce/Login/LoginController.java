@@ -37,6 +37,8 @@ public class LoginController {
         Authentication authentication = authenticationManager.authenticate(requestToken);
 
         UserDetails user = (UserDetails) authentication.getPrincipal();
+       
+       
         String token=jwtUtils.generateToken(user);
 
         LoginResponse response=new LoginResponse(token);

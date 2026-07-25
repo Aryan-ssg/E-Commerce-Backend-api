@@ -27,6 +27,10 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public Category createCategories(Category category) {
 
+        if(categoryRepository.findByCategoryName(category.getCategoryName()).isPresent()){
+            throw new ResponseStatusException(HttpStatus.CONFLICT,category.getCategoryName()+" Category already exists");
+        }
+
         return categoryRepository.save(category);
 
     }
