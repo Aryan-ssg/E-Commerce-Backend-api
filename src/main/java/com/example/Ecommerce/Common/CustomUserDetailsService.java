@@ -27,10 +27,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         
-        AppUser user=userRepository.findByUserName(username)
+        AppUser user=userRepository.findByUsername(username)
         .orElseThrow(() -> new UsernameNotFoundException(username+" not found"));
 
-        return User.withUsername(user.getUserName())
+        return User.withUsername(user.getUsername())
         .password(user.getPassword())
         .authorities("ROLE_"+user.getRole())
         .build();

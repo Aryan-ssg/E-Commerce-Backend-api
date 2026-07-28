@@ -13,7 +13,7 @@ import lombok.Setter;
 public class RegisterRequest {
 
     @NotBlank(message="Username is required")
-    private String userName;
+    private String username;
     @NotBlank(message="Password is required")
     private String password;
     

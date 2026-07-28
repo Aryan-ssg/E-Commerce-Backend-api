@@ -33,12 +33,14 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/order/my-orders")
-    public ResponseEntity<List<GetOrderByIdResponse>> getOrdersForCurrentUser(){
-        List<GetOrderByIdResponse> orderList=  orderService.getOrdersForCurrentUser();
+    public ResponseEntity<List<GetOrderByIdResponse>> getOrdersForCurrentUser() {
+        List<GetOrderByIdResponse> orderList = orderService.getOrdersForCurrentUser();
         return ResponseEntity.status(HttpStatus.OK).body(orderList);
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/order/place")
     public ResponseEntity<PlaceOrderResponse> placeOrder(@Valid @RequestBody PlaceOrderRequest request) {
 
@@ -46,6 +48,7 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PutMapping("/order/{orderId}/changeShippingAddress")
     public ResponseEntity<ChangeShippingAddressResponse> changeShippingAddress(@PathVariable Long orderId,
             @Valid @RequestBody ChangeShippingAddressRequest request) {
@@ -57,27 +60,26 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/order/{orderId}/updateOrderStatus")
     public ResponseEntity<UpdateOrderStatusResponse> updateOrderStatus(@PathVariable Long orderId,
-           @Valid @RequestBody UpdateOrderStatusRequest request) {
+            @Valid @RequestBody UpdateOrderStatusRequest request) {
 
         UpdateOrderStatusResponse response = orderService.updateOrderStatus(orderId, request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-   
-   
+    @PreAuthorize("hasRole('USER')")
     @PutMapping("/order/{orderId}/cancel")
-    public ResponseEntity<String> cancelOrder(@PathVariable Long orderId){
+    public ResponseEntity<String> cancelOrder(@PathVariable Long orderId) {
 
-        Order response=orderService.cancelOrder(orderId);
-        if(response==null){
+        Order response = orderService.cancelOrder(orderId);
+        if (response == null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Only Pending orders can be cancelled");
 
         }
         return ResponseEntity.status(HttpStatus.OK).body("Order has been cancelled");
 
-
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/order/{orderId}")
     public ResponseEntity<GetOrderByIdResponse> getOrderByOrderId(@PathVariable Long orderId) {
         GetOrderByIdResponse response = orderService.getOrderByOrderId(orderId);

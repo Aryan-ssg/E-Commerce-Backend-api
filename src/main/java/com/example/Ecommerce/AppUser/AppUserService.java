@@ -22,7 +22,7 @@ public class AppUserService {
 
     @Transactional
     public void registerUser(RegisterRequest request) {
-        if (userRepository.findByUserName(request.getUserName()).isPresent()) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new UserAlreadyExistsException();
         }
 
@@ -30,7 +30,7 @@ public class AppUserService {
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.USER);
-        user.setUserName(request.getUserName());
+        user.setUsername(request.getUsername());
 
         userRepository.save(user);
     }

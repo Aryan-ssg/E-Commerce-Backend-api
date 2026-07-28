@@ -25,7 +25,7 @@ public class AuthenticationHelper {
                 .getAuthentication()
                 .getName();
 
-        return appUserRepository.findByUserName(username)
+        return appUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException(username));
     }
 }

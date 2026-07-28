@@ -2,10 +2,10 @@ package com.example.Ecommerce.Product;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+
 
 import com.example.Ecommerce.Category.Category;
 import com.example.Ecommerce.Category.CategoryRepository;

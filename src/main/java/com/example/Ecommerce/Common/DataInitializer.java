@@ -31,9 +31,9 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (userRepo.findByUserName("admin").isEmpty()) {
+        if (userRepo.findByUsername("admin").isEmpty()) {
             AppUser admin=new AppUser();
-            admin.setUserName("admin");
+            admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode(adminPassword));
             admin.setRole(Role.ADMIN);
 

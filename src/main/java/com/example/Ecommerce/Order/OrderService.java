@@ -95,7 +95,7 @@ public class OrderService {
 
         String userName = auth.getName();
 
-        AppUser user = appUserRepository.findByUserName(userName)
+        AppUser user = appUserRepository.findByUsername(userName)
                 .orElseThrow(() -> new ResourceNotFoundException("User with Username : "+userName+" not found"));
 
         Order order = new Order();
@@ -229,7 +229,7 @@ public class OrderService {
     }
 
     public Order cancelOrder(Long orderId){
-           Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : "+orderId + " not found"));
 
 

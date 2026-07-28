@@ -30,7 +30,7 @@ public class AppUser {
 
     @NotBlank(message = "Username is required")
     @Column(nullable = false, unique = true)
-    private String userName;
+    private String username;
 
     @NotBlank(message = "Password is required")
     private String password;
