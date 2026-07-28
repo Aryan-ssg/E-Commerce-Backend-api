@@ -1,18 +1,16 @@
 package com.example.Ecommerce.Order;
 
-import java.nio.file.AccessDeniedException;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+
 
 import com.example.Ecommerce.AppUser.AppUser;
 import com.example.Ecommerce.AppUser.AppUserRepository;
@@ -231,10 +229,17 @@ public class OrderService {
     }
 
     public Order cancelOrder(Long orderId){
-          Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order with orderid : "+orderId+" not found"));
+           Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : "+orderId + " not found"));
 
-       
+
+
+        AppUser currentUser = authenticationHelper.getCurrentUser();
+
+        if(!order.getUser().getUserId().equals(currentUser.getUserId())){
+            throw new UnauthorizedAccessException("Unauthorized access");
+        }
+          
         if(order.getOrderStatus()!=OrderStatus.PENDING){
             throw new InvalidTransitionException("Only Pending orders can be Cancelled.");
         }

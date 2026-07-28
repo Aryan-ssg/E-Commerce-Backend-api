@@ -1,10 +1,6 @@
 package com.example.Ecommerce.Order.DTOs.response;
 
-import com.example.Ecommerce.Product.Product;
 
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

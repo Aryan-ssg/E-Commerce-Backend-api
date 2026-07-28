@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
+
 
 import jakarta.validation.Valid;
 
@@ -45,27 +45,21 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/admin/categories/{categoryId}")
     public ResponseEntity<String> deleteCategories(@PathVariable Long categoryId) {
-        try {
+       
             String status = categoryService.deleteCategories(categoryId);
 
             return ResponseEntity.status(HttpStatus.OK).body(status);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
-
-        }
+       
 
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/admin/categories/{categoryId}")
     public ResponseEntity<Category> updateCategories(@Valid @RequestBody Category category, @PathVariable Long categoryId) {
-        try {
+        
             Category savedCategory = categoryService.updateCategories(category, categoryId);
             return ResponseEntity.status(HttpStatus.OK).body(savedCategory);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-
-        }
+      
 
     }
 

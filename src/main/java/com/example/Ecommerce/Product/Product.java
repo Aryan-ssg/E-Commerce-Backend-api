@@ -4,6 +4,7 @@ import com.example.Ecommerce.Category.Category;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,7 +34,7 @@ public class Product {
     @Positive(message = "Price must be positive")
     private int productPrice;
 
-    @ManyToOne
+    @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="category_id")
     @JsonBackReference
     private Category category;

@@ -4,10 +4,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.Ecommerce.AppUser.AppUser;
 import com.example.Ecommerce.AppUser.AppUserRepository;
 import com.example.Ecommerce.AppUser.Role;
+
+
 
 
 
@@ -26,6 +29,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     @Override
+    @Transactional
     public void run(String... args) {
         if (userRepo.findByUserName("admin").isEmpty()) {
             AppUser admin=new AppUser();
