@@ -1,4 +1,4 @@
-package com.example.Ecommerce.AppUser.DTOs;
+package com.example.Ecommerce.AppUser.DTOs.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

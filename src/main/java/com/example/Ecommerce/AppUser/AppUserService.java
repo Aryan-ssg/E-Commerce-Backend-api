@@ -1,38 +1,18 @@
 package com.example.Ecommerce.AppUser;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
 
-import com.example.Ecommerce.AppUser.DTOs.RegisterRequest;
-import com.example.Ecommerce.Common.Exceptions.UserAlreadyExistsException;
+import com.example.Ecommerce.AppUser.DTOs.request.ChangePasswordRequest;
+import com.example.Ecommerce.AppUser.DTOs.request.RegisterRequest;
+import com.example.Ecommerce.AppUser.DTOs.response.UserAdminResponse;
+import com.example.Ecommerce.Common.DTOs.PagedResponse;
 
+public interface AppUserService {
 
+    public void registerUser(RegisterRequest request);
 
-@Service
-public class AppUserService {
+    void changePassword(ChangePasswordRequest request);
 
-    private PasswordEncoder passwordEncoder;
-    private AppUserRepository userRepository;
-
-    public AppUserService(PasswordEncoder passwordEncoder, AppUserRepository userRepository) {
-        this.passwordEncoder = passwordEncoder;
-        this.userRepository = userRepository;
-    }
-
-    @Transactional
-    public void registerUser(RegisterRequest request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new UserAlreadyExistsException();
-        }
-
-        AppUser user = new AppUser();
-
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.USER);
-        user.setUsername(request.getUsername());
-
-        userRepository.save(user);
-    }
+    PagedResponse<UserAdminResponse> getAllUsers(String username, Role role, Pageable pageable);
 
 }
