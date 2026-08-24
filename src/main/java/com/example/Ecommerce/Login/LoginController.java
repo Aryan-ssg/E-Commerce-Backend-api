@@ -52,7 +52,7 @@ public class LoginController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String accessToken = jwtUtils.generateAccessToken(user, appUser.getUserId(),
-                "ROLE_" + appUser.getRole().name(), appUser.getTokenVersion());
+                "ROLE_" + appUser.getRole().name(), (appUser.getTokenVersion() == null ? 0L : appUser.getTokenVersion()));
         String refreshToken = jwtUtils.generateRefreshToken(user);
 
         refreshTokenService.storeRefreshToken(appUser, refreshToken);
@@ -83,7 +83,7 @@ public class LoginController {
                     .build();
 
             String newAccessToken = jwtUtils.generateAccessToken(userDetails, appUser.getUserId(),
-                    "ROLE_" + appUser.getRole().name(), appUser.getTokenVersion());
+                    "ROLE_" + appUser.getRole().name(), (appUser.getTokenVersion() == null ? 0L : appUser.getTokenVersion()));
             String newRefreshToken = jwtUtils.generateRefreshToken(userDetails);
 
             refreshTokenService.rotateToken(stored, newRefreshToken);

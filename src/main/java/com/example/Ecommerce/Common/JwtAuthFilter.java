@@ -58,7 +58,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 AppUser user = appUserRepository.findById(userId)
                         .orElseThrow(() -> new TokenVersionMismatchException("User no longer exists"));
 
-                if (tokenVersion == null || !tokenVersion.equals(user.getTokenVersion())) {
+                Long tokenVersionValue = (tokenVersion == null) ? 0L : tokenVersion;
+                Long storedVersion = (user.getTokenVersion() == null) ? 0L : user.getTokenVersion();
+                if (!tokenVersionValue.equals(storedVersion)) {
                     throw new TokenVersionMismatchException("Token version mismatch - please login again");
                 }
 
