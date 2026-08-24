@@ -47,6 +47,9 @@ public class Product {
     @NotNull(message = "Stock is required")
     private Integer stock;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     // Soft-delete flag. Historical orders keep their product FK, so we never hard-delete;
     // the catalog query filters this out via ProductSpecifications.isActive().
     // columnDefinition gives the ALTER a default so existing rows backfill to true

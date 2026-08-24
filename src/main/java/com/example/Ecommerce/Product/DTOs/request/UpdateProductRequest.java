@@ -19,4 +19,6 @@ public class UpdateProductRequest {
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be positive ")
     private Integer productPrice;
+
+    private String imageUrl;
 }

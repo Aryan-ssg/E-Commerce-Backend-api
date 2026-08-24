@@ -63,7 +63,8 @@ public class StockServiceImpl implements StockService {
                 savedProduct.getProductName(),
                 savedProduct.getProductPrice(),
                 savedProduct.getCategory().getCategoryName(),
-                savedProduct.getStock());
+                savedProduct.getStock(),
+                savedProduct.getImageUrl());
     }
 
 }

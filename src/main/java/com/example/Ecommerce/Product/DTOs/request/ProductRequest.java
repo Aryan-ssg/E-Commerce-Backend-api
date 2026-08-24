@@ -26,4 +26,6 @@ public class ProductRequest {
     @PositiveOrZero(message = "stock cannot be negative")
     private Integer stock;
 
+    private String imageUrl;
+
 }

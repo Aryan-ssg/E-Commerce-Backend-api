@@ -19,4 +19,6 @@ public class ProductAdminResponse {
     private String categoryName;
 
    private Integer stock;
+
+   private String imageUrl;
 }

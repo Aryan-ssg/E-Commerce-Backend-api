@@ -67,11 +67,11 @@ class ProductControllerTest {
     private AppUserRepository appUserRepository;
 
     private ProductResponse productResponse() {
-        return new ProductResponse(100L, "Headphones", 2000, "Electronics");
+        return new ProductResponse(100L, "Headphones", 2000, "Electronics", null);
     }
 
     private ProductAdminResponse productAdminResponse() {
-        return new ProductAdminResponse(100L, "Headphones", 2000, "Electronics", 5);
+        return new ProductAdminResponse(100L, "Headphones", 2000, "Electronics", 5, null);
     }
 
     @Test
@@ -159,7 +159,7 @@ class ProductControllerTest {
     @Test
     void updateProduct_admin_returns200WithUpdatedProduct() throws Exception {
         when(productService.updateProduct(eq(100L), any(UpdateProductRequest.class)))
-                .thenReturn(new ProductAdminResponse(100L, "Wireless Headphones", 2500, "Electronics", 5));
+                .thenReturn(new ProductAdminResponse(100L, "Wireless Headphones", 2500, "Electronics", 5, null));
 
         mockMvc.perform(put("/api/admin/products/100")
                         .with(user("admin").roles("ADMIN"))

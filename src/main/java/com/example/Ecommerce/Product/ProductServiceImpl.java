@@ -61,7 +61,8 @@ public class ProductServiceImpl implements ProductService {
                     product.getProductId(),
                     product.getProductName(),
                     product.getProductPrice(),
-                    product.getCategory().getCategoryName()));
+                    product.getCategory().getCategoryName(),
+                    product.getImageUrl()));
         }
 
         return new PagedResponse<>(
@@ -83,7 +84,8 @@ public class ProductServiceImpl implements ProductService {
         ProductResponse response = new ProductResponse(product.getProductId(),
                 product.getProductName(),
                 product.getProductPrice(),
-                product.getCategory().getCategoryName());
+                product.getCategory().getCategoryName(),
+                product.getImageUrl());
         return response;
 
     }
@@ -100,6 +102,7 @@ public class ProductServiceImpl implements ProductService {
         requestProduct.setProductName(product.getProductName());
         requestProduct.setProductPrice(product.getProductPrice());
         requestProduct.setStock(product.getStock());
+        requestProduct.setImageUrl(product.getImageUrl());
 
         Product savedProduct = productRepository.save(requestProduct);
 
@@ -107,7 +110,8 @@ public class ProductServiceImpl implements ProductService {
                 savedProduct.getProductName(),
                 savedProduct.getProductPrice(),
                 category.getCategoryName(),
-                savedProduct.getStock());
+                savedProduct.getStock(),
+                savedProduct.getImageUrl());
 
         return response;
 
@@ -121,6 +125,7 @@ public class ProductServiceImpl implements ProductService {
 
         existingProduct.setProductName(updatedProduct.getProductName());
         existingProduct.setProductPrice(updatedProduct.getProductPrice());
+        existingProduct.setImageUrl(updatedProduct.getImageUrl());
 
         Product savedProduct = productRepository.save(existingProduct);
 
@@ -128,7 +133,8 @@ public class ProductServiceImpl implements ProductService {
                 savedProduct.getProductName(),
                 savedProduct.getProductPrice(),
                 savedProduct.getCategory().getCategoryName(),
-                savedProduct.getStock());
+                savedProduct.getStock(),
+                savedProduct.getImageUrl());
 
         return response;
     }
