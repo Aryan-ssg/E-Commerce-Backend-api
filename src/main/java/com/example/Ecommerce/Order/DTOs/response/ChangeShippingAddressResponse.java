@@ -12,6 +12,10 @@ import lombok.Setter;
 public class ChangeShippingAddressResponse {
     private Long orderId;
 
-    private String newShippingAddress;
+    private String addressLine;
+
+    private String pinCode;
+
+    private String landmark;
 
 }

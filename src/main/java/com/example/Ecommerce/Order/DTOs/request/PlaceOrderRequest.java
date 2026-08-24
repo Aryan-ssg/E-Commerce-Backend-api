@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,8 +20,14 @@ public class PlaceOrderRequest {
     @Valid
     private List<OrderItemsRequest> orderItems;
 
-    @NotBlank(message = "Shipping address is required")
-    private String shippingAddress;
+    @NotBlank(message = "Address is required")
+    private String addressLine;
+
+    @NotBlank(message = "PIN code is required")
+    @Pattern(regexp = "^[1-9][0-9]{5}$", message = "Enter a valid 6-digit PIN code")
+    private String pinCode;
+
+    private String landmark;
 
     private String razorpayOrderId;
     private String razorpayPaymentId;

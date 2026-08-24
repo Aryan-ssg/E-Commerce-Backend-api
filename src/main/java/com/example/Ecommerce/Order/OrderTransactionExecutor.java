@@ -36,7 +36,9 @@ class OrderTransactionExecutor {
         Order order = new Order();
         order.setUser(user);
         order.setOrderDateTime(LocalDateTime.now());
-        order.setShippingAddress(request.getShippingAddress());
+        order.setAddressLine(request.getAddressLine());
+        order.setPinCode(request.getPinCode());
+        order.setLandmark(request.getLandmark());
         order.setOrderStatus(OrderStatus.PENDING);
         
         if (request.getRazorpayOrderId() != null) {

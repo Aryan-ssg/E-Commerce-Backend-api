@@ -21,7 +21,11 @@ public class PlaceOrderResponse {
 
     private int totalPrice;
 
-    private String shippingAddress;
+    private String addressLine;
+
+    private String pinCode;
+
+    private String landmark;
 
     private LocalDateTime orderDateTime;
 

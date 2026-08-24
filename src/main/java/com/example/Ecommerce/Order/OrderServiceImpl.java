@@ -70,7 +70,9 @@ public class OrderServiceImpl implements OrderService {
             GetOrderByIdResponse orderResponse = new GetOrderByIdResponse(
                     order.getOrderId(),
                     order.getTotalPrice(),
-                    order.getShippingAddress(),
+                    order.getAddressLine(),
+                    order.getPinCode(),
+                    order.getLandmark(),
                     order.getOrderDateTime(),
                     order.getOrderStatus(),
                     orderItems);
@@ -119,7 +121,9 @@ public class OrderServiceImpl implements OrderService {
         PlaceOrderResponse response = new PlaceOrderResponse();
 
         response.setOrderDateTime(savedOrder.getOrderDateTime());
-        response.setShippingAddress(savedOrder.getShippingAddress());
+        response.setAddressLine(savedOrder.getAddressLine());
+        response.setPinCode(savedOrder.getPinCode());
+        response.setLandmark(savedOrder.getLandmark());
         response.setOrderStatus(savedOrder.getOrderStatus());
         response.setTotalPrice(savedOrder.getTotalPrice());
         response.setOrderItems(orderItemsResponse);
@@ -179,7 +183,9 @@ public class OrderServiceImpl implements OrderService {
 
         PlaceOrderResponse response = new PlaceOrderResponse();
         response.setOrderDateTime(order.getOrderDateTime());
-        response.setShippingAddress(order.getShippingAddress());
+        response.setAddressLine(order.getAddressLine());
+        response.setPinCode(order.getPinCode());
+        response.setLandmark(order.getLandmark());
         response.setOrderStatus(order.getOrderStatus());
         response.setTotalPrice(order.getTotalPrice());
         response.setOrderItems(orderItemsResponse);
@@ -265,11 +271,14 @@ public class OrderServiceImpl implements OrderService {
             throw new InvalidTransitionException("Shipping address can only be changed for pending orders.");
         }
 
-        order.setShippingAddress(request.getNewShippingAddress());
+        order.setAddressLine(request.getAddressLine());
+        order.setPinCode(request.getPinCode());
+        order.setLandmark(request.getLandmark());
         orderRepository.save(order);
 
         // Response
-        ChangeShippingAddressResponse response = new ChangeShippingAddressResponse(orderId, order.getShippingAddress());
+        ChangeShippingAddressResponse response = new ChangeShippingAddressResponse(
+                orderId, order.getAddressLine(), order.getPinCode(), order.getLandmark());
 
         return response;
 
@@ -322,7 +331,9 @@ public class OrderServiceImpl implements OrderService {
         response.setOrderDateTime(order.getOrderDateTime());
         response.setOrderId(order.getOrderId());
         response.setOrderStatus(order.getOrderStatus());
-        response.setShippingAddress(order.getShippingAddress());
+        response.setAddressLine(order.getAddressLine());
+        response.setPinCode(order.getPinCode());
+        response.setLandmark(order.getLandmark());
         response.setTotalPrice(order.getTotalPrice());
 
         List<OrderItemsResponse> orderItemsResponse = new ArrayList<>();

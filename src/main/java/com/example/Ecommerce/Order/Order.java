@@ -19,7 +19,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -41,8 +41,14 @@ public class Order {
     
     private int totalPrice;
 
-    @NotBlank(message="Address is required")
-    private String shippingAddress;
+    @Column(nullable = true)
+    private String addressLine;
+
+    @Column(nullable = true)
+    private String pinCode;
+
+    @Column(nullable = true)
+    private String landmark;
 
 
     private LocalDateTime orderDateTime;

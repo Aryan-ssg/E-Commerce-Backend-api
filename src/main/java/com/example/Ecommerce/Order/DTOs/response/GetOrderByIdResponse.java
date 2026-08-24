@@ -17,10 +17,14 @@ import lombok.Setter;
 public class GetOrderByIdResponse {
 
    private Long orderId;
-    
+     
     private int totalPrice;
 
-    private String shippingAddress;
+    private String addressLine;
+
+    private String pinCode;
+
+    private String landmark;
 
     private LocalDateTime orderDateTime;
 

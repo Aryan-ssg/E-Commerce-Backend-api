@@ -67,7 +67,8 @@ class OrderServiceTest {
         order.setOrderId(orderId);
         order.setUser(user);
         order.setOrderStatus(status);
-        order.setShippingAddress("123 Old Street");
+        order.setAddressLine("123 Old Street");
+        order.setPinCode("110001");
         order.setOrderItems(new ArrayList<>());
         return order;
     }
@@ -242,12 +243,13 @@ class OrderServiceTest {
         when(authenticationHelper.getCurrentUser()).thenReturn(owner);
 
         ChangeShippingAddressRequest request = new ChangeShippingAddressRequest();
-        request.setNewShippingAddress("456 New Avenue");
+        request.setAddressLine("456 New Avenue");
+        request.setPinCode("110002");
 
         ChangeShippingAddressResponse response = orderService.changeShippingAddress(10L, request);
 
-        assertThat(response.getNewShippingAddress()).isEqualTo("456 New Avenue");
-        assertThat(order.getShippingAddress()).isEqualTo("456 New Avenue");
+        assertThat(response.getAddressLine()).isEqualTo("456 New Avenue");
+        assertThat(order.getAddressLine()).isEqualTo("456 New Avenue");
         verify(orderRepository).save(order);
     }
 
@@ -258,7 +260,8 @@ class OrderServiceTest {
         when(authenticationHelper.getCurrentUser()).thenReturn(otherUser);
 
         ChangeShippingAddressRequest request = new ChangeShippingAddressRequest();
-        request.setNewShippingAddress("456 New Avenue");
+        request.setAddressLine("456 New Avenue");
+        request.setPinCode("110002");
 
         assertThatThrownBy(() -> orderService.changeShippingAddress(10L, request))
                 .isInstanceOf(UnauthorizedAccessException.class);
@@ -273,7 +276,8 @@ class OrderServiceTest {
         when(authenticationHelper.getCurrentUser()).thenReturn(owner);
 
         ChangeShippingAddressRequest request = new ChangeShippingAddressRequest();
-        request.setNewShippingAddress("456 New Avenue");
+        request.setAddressLine("456 New Avenue");
+        request.setPinCode("110002");
 
         assertThatThrownBy(() -> orderService.changeShippingAddress(10L, request))
                 .isInstanceOf(InvalidTransitionException.class);
