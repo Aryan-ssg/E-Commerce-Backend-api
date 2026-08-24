@@ -4,6 +4,12 @@ public enum OrderStatus {
     PENDING{
         @Override
         public boolean canTransitionTo(OrderStatus next){
+            return next==PAID || next==CANCELLED;
+        }
+    },
+    PAID{
+        @Override
+        public boolean canTransitionTo(OrderStatus next) {
             return next==PROCESSING || next==CANCELLED;
         }
     },

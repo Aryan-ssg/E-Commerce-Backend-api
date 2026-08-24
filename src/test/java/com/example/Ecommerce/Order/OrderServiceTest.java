@@ -1,0 +1,240 @@
+package com.example.Ecommerce.Order;
+
+import java.util.ArrayList;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.example.Ecommerce.AppUser.AppUser;
+import com.example.Ecommerce.AppUser.Role;
+import com.example.Ecommerce.Common.AuthenticationHelper;
+import com.example.Ecommerce.Common.Exceptions.InvalidTransitionException;
+import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
+import com.example.Ecommerce.Common.Exceptions.UnauthorizedAccessException;
+import com.example.Ecommerce.Order.DTOs.request.ChangeShippingAddressRequest;
+import com.example.Ecommerce.Order.DTOs.request.UpdateOrderStatusRequest;
+import com.example.Ecommerce.Order.DTOs.response.ChangeShippingAddressResponse;
+import com.example.Ecommerce.Order.DTOs.response.UpdateOrderStatusResponse;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class OrderServiceTest {
+
+    @Mock
+    private OrderRepository orderRepository;
+
+    @Mock
+    private AuthenticationHelper authenticationHelper;
+
+    @Mock
+    private OrderTransactionExecutor orderTransactionExecutor;
+
+    @InjectMocks
+    private OrderServiceImpl orderService;
+
+    private AppUser owner;
+    private AppUser otherUser;
+
+    @BeforeEach
+    void setUp() {
+        owner = new AppUser();
+        owner.setUserId(1L);
+        owner.setUsername("owner");
+        owner.setRole(Role.USER);
+
+        otherUser = new AppUser();
+        otherUser.setUserId(2L);
+        otherUser.setUsername("intruder");
+        otherUser.setRole(Role.USER);
+    }
+
+    private Order buildOrder(Long orderId, AppUser user, OrderStatus status) {
+        Order order = new Order();
+        order.setOrderId(orderId);
+        order.setUser(user);
+        order.setOrderStatus(status);
+        order.setShippingAddress("123 Old Street");
+        order.setOrderItems(new ArrayList<>());
+        return order;
+    }
+
+
+
+
+    @Test
+    void updateOrderStatus_validTransition_updatesAndSaves() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+
+        UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
+        request.setUpdatedStatus(OrderStatus.PAID);
+
+        UpdateOrderStatusResponse response = orderService.updateOrderStatus(10L, request);
+
+        assertThat(response.getOrderStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PAID);
+        verify(orderRepository).save(order);
+        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any());
+    }
+
+    @Test
+    void updateOrderStatus_invalidTransition_throwsAndDoesNotSave() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+
+        UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
+        request.setUpdatedStatus(OrderStatus.SHIPPED);
+
+        assertThatThrownBy(() -> orderService.updateOrderStatus(10L, request))
+                .isInstanceOf(InvalidTransitionException.class);
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOrderStatus_toCancelled_delegatesToTransactionExecutor() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+
+        UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
+        request.setUpdatedStatus(OrderStatus.CANCELLED);
+
+        orderService.updateOrderStatus(10L, request);
+
+        verify(orderTransactionExecutor).cancelOrderTransactional(10L);
+      
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOrderStatus_terminalState_alwaysThrows() {
+        Order order = buildOrder(10L, owner, OrderStatus.DELIVERED);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+
+        UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
+        request.setUpdatedStatus(OrderStatus.PROCESSING);
+
+        assertThatThrownBy(() -> orderService.updateOrderStatus(10L, request))
+                .isInstanceOf(InvalidTransitionException.class);
+    }
+
+    @Test
+    void updateOrderStatus_orderNotFound_throwsResourceNotFoundException() {
+        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+
+        UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
+        request.setUpdatedStatus(OrderStatus.PROCESSING);
+
+        assertThatThrownBy(() -> orderService.updateOrderStatus(99L, request))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+
+
+
+    @Test
+    void cancelOrder_ownerCancelsPendingOrder_succeeds() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+        when(orderTransactionExecutor.cancelOrderTransactional(10L)).thenReturn(order);
+
+        Order result = orderService.cancelOrder(10L);
+
+        assertThat(result).isEqualTo(order);
+        verify(orderTransactionExecutor).cancelOrderTransactional(10L);
+    }
+
+    @Test
+    void cancelOrder_nonOwnerAttempts_throwsUnauthorizedAccessException() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(otherUser);
+
+        assertThatThrownBy(() -> orderService.cancelOrder(10L))
+                .isInstanceOf(UnauthorizedAccessException.class);
+
+        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any());
+    }
+
+    @Test
+    void cancelOrder_nonPendingOrder_throwsInvalidTransitionException() {
+        Order order = buildOrder(10L, owner, OrderStatus.SHIPPED);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+
+        assertThatThrownBy(() -> orderService.cancelOrder(10L))
+                .isInstanceOf(InvalidTransitionException.class);
+
+        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any());
+    }
+
+    @Test
+    void cancelOrder_orderNotFound_throwsResourceNotFoundException() {
+        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.cancelOrder(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    
+
+    
+
+    @Test
+    void changeShippingAddress_ownerOnPendingOrder_updatesAddress() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+
+        ChangeShippingAddressRequest request = new ChangeShippingAddressRequest();
+        request.setNewShippingAddress("456 New Avenue");
+
+        ChangeShippingAddressResponse response = orderService.changeShippingAddress(10L, request);
+
+        assertThat(response.getNewShippingAddress()).isEqualTo("456 New Avenue");
+        assertThat(order.getShippingAddress()).isEqualTo("456 New Avenue");
+        verify(orderRepository).save(order);
+    }
+
+    @Test
+    void changeShippingAddress_nonOwner_throwsUnauthorizedAccessException() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(otherUser);
+
+        ChangeShippingAddressRequest request = new ChangeShippingAddressRequest();
+        request.setNewShippingAddress("456 New Avenue");
+
+        assertThatThrownBy(() -> orderService.changeShippingAddress(10L, request))
+                .isInstanceOf(UnauthorizedAccessException.class);
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void changeShippingAddress_nonPendingOrder_throwsInvalidTransitionException() {
+        Order order = buildOrder(10L, owner, OrderStatus.PROCESSING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+
+        ChangeShippingAddressRequest request = new ChangeShippingAddressRequest();
+        request.setNewShippingAddress("456 New Avenue");
+
+        assertThatThrownBy(() -> orderService.changeShippingAddress(10L, request))
+                .isInstanceOf(InvalidTransitionException.class);
+
+        verify(orderRepository, never()).save(any());
+    }
+}

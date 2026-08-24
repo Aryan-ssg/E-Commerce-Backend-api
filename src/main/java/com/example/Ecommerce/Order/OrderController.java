@@ -49,6 +49,18 @@ public class OrderController {
     }
 
     @PreAuthorize("hasRole('USER')")
+    @PostMapping("/order/{orderId}/verify-payment")
+    public ResponseEntity<PlaceOrderResponse> verifyPaymentAndConfirmOrder(
+            @PathVariable Long orderId,
+            @RequestBody com.example.Ecommerce.Payment.DTOs.request.VerifyPaymentRequest request) {
+
+        PlaceOrderResponse response = orderService.verifyPaymentAndConfirmOrder(
+                orderId, request.getRazorpayPaymentId(), request.getRazorpaySignature()
+        );
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PreAuthorize("hasRole('USER')")
     @PutMapping("/order/{orderId}/changeShippingAddress")
     public ResponseEntity<ChangeShippingAddressResponse> changeShippingAddress(@PathVariable Long orderId,
             @Valid @RequestBody ChangeShippingAddressRequest request) {
@@ -70,11 +82,8 @@ public class OrderController {
     @PutMapping("/order/{orderId}/cancel")
     public ResponseEntity<String> cancelOrder(@PathVariable Long orderId) {
 
-        Order response = orderService.cancelOrder(orderId);
-        if (response == null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Only Pending orders can be cancelled");
-
-        }
+        orderService.cancelOrderAndReleaseStock(orderId);
+        
         return ResponseEntity.status(HttpStatus.OK).body("Order has been cancelled");
 
     }
