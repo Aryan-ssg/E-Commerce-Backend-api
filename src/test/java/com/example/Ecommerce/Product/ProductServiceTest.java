@@ -163,12 +163,15 @@ class ProductServiceTest {
     }
 
     @Test
-    void deleteProduct_found_deletes() {
+    void deleteProduct_found_softDeletes() {
         when(productRepository.findById(100L)).thenReturn(Optional.of(product));
 
         productService.deleteProduct(100L);
 
-        verify(productRepository).delete(product);
+        // Soft delete: flag flipped, row retained (so historical orders keep their FK)
+        assertThat(product.isActive()).isFalse();
+        verify(productRepository).save(product);
+        verify(productRepository, never()).delete(any(Product.class));
     }
 
     @Test

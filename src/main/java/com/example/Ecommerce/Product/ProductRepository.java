@@ -32,4 +32,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query("UPDATE Product p SET p.stock = p.stock + :quantity WHERE p.productId = :productId")
     int incrementStock(@Param("productId") Long productId, @Param("quantity") int quantity);
 
+    long countByCategory_CategoryId(@Param("categoryId") Long categoryId);
+
 }

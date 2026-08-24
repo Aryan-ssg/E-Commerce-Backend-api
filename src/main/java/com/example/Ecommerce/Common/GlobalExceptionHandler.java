@@ -2,6 +2,7 @@ package com.example.Ecommerce.Common;
 
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -88,6 +89,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUsernameNotFound(UsernameNotFoundException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse(401, "Invalid username or password"));
+    }
+
+    // Backstop for unique-constraint and FK violations on paths without a specific
+    // handler (e.g. concurrent registration is translated to UserAlreadyExistsException
+    // in the service, so this mostly catches other constraint races).
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("Data integrity violation", e);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(409, "Record conflicts with existing data"));
     }
 
     @ExceptionHandler(RefreshTokenService.InvalidRefreshTokenException.class)

@@ -3,6 +3,7 @@ package com.example.Ecommerce.AppUser;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -46,7 +47,13 @@ public class AppUserServiceImpl implements AppUserService {
         user.setRole(Role.USER);
         user.setUsername(request.getUsername());
 
-        userRepository.save(user);
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            // Lost a race against the unique constraint on username (pre-check passed
+            // for both requests). Translates the 500 the catch-all would produce into 409.
+            throw new UserAlreadyExistsException();
+        }
     }
 
     @Override

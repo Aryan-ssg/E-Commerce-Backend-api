@@ -33,4 +33,11 @@ public class ProductSpecifications {
         return (root, query, cb) ->
                 cb.greaterThan(root.get("stock"), 0);
     }
+
+    public static Specification<Product> isActive() {
+        // Soft-deleted products (active = false) never appear in the public catalog,
+        // but historical orders still resolve their product FK, so we don't use @Where on
+        // the entity itself.
+        return (root, query, cb) -> cb.isTrue(root.get("active"));
+    }
 }

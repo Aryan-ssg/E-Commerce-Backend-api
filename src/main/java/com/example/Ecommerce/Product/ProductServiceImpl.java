@@ -50,6 +50,9 @@ public class ProductServiceImpl implements ProductService {
             spec = spec.and(ProductSpecifications.inStockOnly());
         }
 
+        // Always exclude soft-deleted products from the catalog
+        spec = spec.and(ProductSpecifications.isActive());
+
         Page<Product> productPage = productRepository.findAll(spec, pageable);
 
         List<ProductResponse> content = new ArrayList<>();
@@ -136,8 +139,10 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Product with productid : " + productId + " not found"));
 
-        productRepository.delete(product);
-
+        // Soft delete: keep the row so historical orders keep their FK, just hide it
+        // from the catalog and prevent further sales.
+        product.setActive(false);
+        productRepository.save(product);
     }
 
 }

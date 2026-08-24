@@ -62,23 +62,28 @@ public class PaymentController {
         
         String receipt = "order_rcpt_" + order.getOrderId() + "_" + System.currentTimeMillis();
         
-        // Compute amount server-side from order total (in rupees, convert to paise)
-        int amountInPaise = order.getTotalPrice() * 100;
-        
+        // Compute amount server-side from order total (in rupees, convert to paise).
+        // long math guards the multiplication against int overflow on large totals.
+        long amountInPaise = order.getTotalPrice() * 100L;
+        if (amountInPaise > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Order total exceeds the maximum supported payment amount");
+        }
+        int amount = (int) amountInPaise;
+
         com.razorpay.Order razorpayOrder = razorpayService.createOrder(
-                amountInPaise, 
-                request.getCurrency(), 
-                receipt, 
+                amount,
+                request.getCurrency(),
+                receipt,
                 null
         );
-        
+
         // Store razorpay order ID on the order
         order.setRazorpayOrderId(razorpayOrder.get("id"));
         orderRepository.save(order);
-        
+
         CreatePaymentOrderResponse response = new CreatePaymentOrderResponse(
                 razorpayOrder.get("id"),
-                amountInPaise,
+                amount,
                 request.getCurrency(),
                 razorpayService.getKeyId(),
                 receipt

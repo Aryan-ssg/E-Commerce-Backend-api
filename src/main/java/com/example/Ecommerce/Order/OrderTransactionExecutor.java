@@ -2,6 +2,7 @@ package com.example.Ecommerce.Order;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -42,7 +43,7 @@ class OrderTransactionExecutor {
             order.setRazorpayOrderId(request.getRazorpayOrderId());
         }
 
-        int totalOrderPrice = 0;
+        long totalOrderPrice = 0;
         List<OrderItem> itemList = new ArrayList<>();
 
         for (OrderItemsRequest orderItem : request.getOrderItems()) {
@@ -61,26 +62,49 @@ class OrderTransactionExecutor {
             item.setQuantity(orderItem.getQuantity());
             item.setPriceAtCheckout(product.getProductPrice());
 
-            totalOrderPrice += product.getProductPrice() * orderItem.getQuantity();
+            // long arithmetic guards the running sum against int overflow on large carts
+            totalOrderPrice += (long) product.getProductPrice() * orderItem.getQuantity();
             itemList.add(item);
         }
 
+        if (totalOrderPrice > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Order total exceeds the maximum supported amount");
+        }
+
         order.setOrderItems(itemList);
-        order.setTotalPrice(totalOrderPrice);
+        order.setTotalPrice((int) totalOrderPrice);
 
         return orderRepository.save(order);
     }
 
+    /**
+     * Atomically cancels an order and releases its reserved stock.
+     * <p>
+     * The status flip is a single conditional UPDATE, so exactly one racing caller
+     * (user cancel, admin cancel, expiry job) can win the claim. Stock is released
+     * only by the winner, inside the same transaction - if any release fails, the
+     * flip rolls back too. Callers that lose the race get {@code false} instead of
+     * silently double-releasing inventory.
+     *
+     * @param allowedFromStatuses states the order may currently be in to qualify for cancellation;
+     *                            the expiry job passes only PENDING so it can never cancel a just-paid order
+     * @return true if this caller performed the cancellation, false if the order was in another state
+     */
     @Transactional
-    public Order cancelOrderTransactional(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : " + orderId + " not found"));
+    public boolean cancelOrderTransactional(Long orderId, Collection<OrderStatus> allowedFromStatuses) {
+        int updated = orderRepository.updateStatusIfIn(orderId, allowedFromStatuses, OrderStatus.CANCELLED);
+
+        if (updated == 0) {
+            return false;
+        }
+
+        Order order = orderRepository.findWithItemsById(orderId)
+                .orElseThrow(() -> new IllegalStateException("Order disappeared during cancellation: " + orderId));
 
         for (OrderItem item : order.getOrderItems()) {
             stockService.releaseStock(item.getProduct().getProductId(), item.getQuantity());
         }
 
-        order.setOrderStatus(OrderStatus.CANCELLED);
-        return orderRepository.save(order);
+        return true;
     }
 }

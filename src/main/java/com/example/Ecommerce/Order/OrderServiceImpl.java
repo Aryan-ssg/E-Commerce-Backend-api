@@ -2,6 +2,7 @@ package com.example.Ecommerce.Order;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 
@@ -204,9 +205,10 @@ public class OrderServiceImpl implements OrderService {
             return; // Already processed, idempotent no-op
         }
 
-        if (amountInPaise != null && amountInPaise != order.getTotalPrice() * 100) {
+        // long math guards the paise conversion against int overflow on large totals
+        if (amountInPaise != null && amountInPaise != order.getTotalPrice() * 100L) {
             log.error("Amount mismatch for order {}: expected {} paise but webhook reported {}",
-                    order.getOrderId(), order.getTotalPrice() * 100, amountInPaise);
+                    order.getOrderId(), order.getTotalPrice() * 100L, amountInPaise);
             return;
         }
 
@@ -232,10 +234,18 @@ public class OrderServiceImpl implements OrderService {
             throw new UnauthorizedAccessException("Unauthorized access");
         }
 
-        if (order.getOrderStatus() == OrderStatus.PENDING || order.getOrderStatus() == OrderStatus.PAID) {
-            orderTransactionExecutor.cancelOrderTransactional(orderId);
-            order.setOrderStatus(OrderStatus.CANCELLED);
-            orderRepository.save(order);
+        if (order.getOrderStatus() == OrderStatus.CANCELLED) {
+            return; // Already cancelled - idempotent no-op
+        }
+
+        // The executor atomically claims the cancellation (PENDING|PAID -> CANCELLED)
+        // and releases stock only if it wins; false means a concurrent request or the
+        // expiry job moved the order past a cancellable state.
+        boolean cancelled = orderTransactionExecutor.cancelOrderTransactional(
+                orderId, EnumSet.of(OrderStatus.PENDING, OrderStatus.PAID));
+
+        if (!cancelled) {
+            throw new InvalidTransitionException("Only pending or paid orders can be Cancelled.");
         }
     }
 
@@ -277,7 +287,18 @@ public class OrderServiceImpl implements OrderService {
                     + " can not transition into " + request.getUpdatedStatus());
         }
         if (request.getUpdatedStatus() == OrderStatus.CANCELLED) {
-            orderTransactionExecutor.cancelOrderTransactional(orderId);
+            boolean cancelled = orderTransactionExecutor.cancelOrderTransactional(
+                    orderId, EnumSet.of(OrderStatus.PENDING, OrderStatus.PAID));
+
+            if (!cancelled) {
+                // Lost a concurrent race - fail only if the order moved somewhere other than CANCELLED
+                Order fresh = orderRepository.findById(orderId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Order with orderid : " + orderId + " not found"));
+                if (fresh.getOrderStatus() != OrderStatus.CANCELLED) {
+                    throw new InvalidTransitionException("An order with status : " + fresh.getOrderStatus()
+                            + " can not transition into " + request.getUpdatedStatus());
+                }
+            }
         } else {
             order.setOrderStatus(request.getUpdatedStatus());
             orderRepository.save(order);
@@ -329,11 +350,20 @@ public class OrderServiceImpl implements OrderService {
             throw new UnauthorizedAccessException("Unauthorized access");
         }
 
-        if (order.getOrderStatus() != OrderStatus.PENDING) {
+        if (order.getOrderStatus() == OrderStatus.CANCELLED) {
+            return order; // Already cancelled - idempotent
+        }
+
+        boolean cancelled = orderTransactionExecutor.cancelOrderTransactional(
+                orderId, EnumSet.of(OrderStatus.PENDING));
+
+        if (!cancelled) {
             throw new InvalidTransitionException("Only Pending orders can be Cancelled.");
         }
 
-        return orderTransactionExecutor.cancelOrderTransactional(orderId);
+        // The atomic flip detached the originally loaded entity - reload the fresh state
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : " + orderId + " not found"));
 
     }
 

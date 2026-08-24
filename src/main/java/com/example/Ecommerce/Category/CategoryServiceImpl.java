@@ -14,14 +14,17 @@ import com.example.Ecommerce.Category.DTOs.response.Productsresponse;
 import com.example.Ecommerce.Common.Exceptions.CategoryAlreadyExistsException;
 import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
 import com.example.Ecommerce.Product.Product;
+import com.example.Ecommerce.Product.ProductRepository;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
 
     private CategoryRepository categoryRepository;
+    private ProductRepository productRepository;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, ProductRepository productRepository) {
         this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
     }
 
     @Override
@@ -81,6 +84,14 @@ public class CategoryServiceImpl implements CategoryService {
         Category savedCategory = optionalSavedCategory
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Category with category id : " + categoryId + " not found"));
+
+        // Block deletion while products still belong to the category. The category has a
+        // CascadeType.ALL / orphanRemoval mapping to its products, so deleting it outright
+        // would cascade-delete (or 500 on an FK from historical orders) - we refuse instead.
+        if (productRepository.countByCategory_CategoryId(categoryId) > 0) {
+            throw new IllegalStateException("Cannot delete category that still has products");
+        }
+
         categoryRepository.delete(savedCategory);
         return "Category removed Successfully";
 

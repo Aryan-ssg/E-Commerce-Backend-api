@@ -1,6 +1,7 @@
 package com.example.Ecommerce.Order;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,8 +23,10 @@ import com.example.Ecommerce.Order.DTOs.response.ChangeShippingAddressResponse;
 import com.example.Ecommerce.Order.DTOs.response.UpdateOrderStatusResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -85,7 +88,7 @@ class OrderServiceTest {
         assertThat(response.getOrderStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PAID);
         verify(orderRepository).save(order);
-        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any());
+        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any(), any());
     }
 
     @Test
@@ -106,15 +109,31 @@ class OrderServiceTest {
     void updateOrderStatus_toCancelled_delegatesToTransactionExecutor() {
         Order order = buildOrder(10L, owner, OrderStatus.PENDING);
         when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(orderTransactionExecutor.cancelOrderTransactional(10L, EnumSet.of(OrderStatus.PENDING, OrderStatus.PAID)))
+                .thenReturn(true);
 
         UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
         request.setUpdatedStatus(OrderStatus.CANCELLED);
 
         orderService.updateOrderStatus(10L, request);
 
-        verify(orderTransactionExecutor).cancelOrderTransactional(10L);
-      
+        verify(orderTransactionExecutor).cancelOrderTransactional(10L, EnumSet.of(OrderStatus.PENDING, OrderStatus.PAID));
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOrderStatus_toCancelled_lostRaceButAlreadyCancelled_isIdempotentSuccess() {
+        // First lookup sees PENDING (passes the transition guard), the post-race
+        // re-check sees CANCELLED (someone else already cancelled it)
+        when(orderRepository.findById(10L))
+                .thenReturn(Optional.of(buildOrder(10L, owner, OrderStatus.PENDING)))
+                .thenReturn(Optional.of(buildOrder(10L, owner, OrderStatus.CANCELLED)));
+        when(orderTransactionExecutor.cancelOrderTransactional(eq(10L), any())).thenReturn(false);
+
+        UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
+        request.setUpdatedStatus(OrderStatus.CANCELLED);
+
+        assertThatCode(() -> orderService.updateOrderStatus(10L, request)).doesNotThrowAnyException();
     }
 
     @Test
@@ -148,12 +167,12 @@ class OrderServiceTest {
         Order order = buildOrder(10L, owner, OrderStatus.PENDING);
         when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
         when(authenticationHelper.getCurrentUser()).thenReturn(owner);
-        when(orderTransactionExecutor.cancelOrderTransactional(10L)).thenReturn(order);
+        when(orderTransactionExecutor.cancelOrderTransactional(10L, EnumSet.of(OrderStatus.PENDING))).thenReturn(true);
 
         Order result = orderService.cancelOrder(10L);
 
         assertThat(result).isEqualTo(order);
-        verify(orderTransactionExecutor).cancelOrderTransactional(10L);
+        verify(orderTransactionExecutor).cancelOrderTransactional(10L, EnumSet.of(OrderStatus.PENDING));
     }
 
     @Test
@@ -165,7 +184,7 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.cancelOrder(10L))
                 .isInstanceOf(UnauthorizedAccessException.class);
 
-        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any());
+        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any(), any());
     }
 
     @Test
@@ -173,11 +192,35 @@ class OrderServiceTest {
         Order order = buildOrder(10L, owner, OrderStatus.SHIPPED);
         when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
         when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+        // SHIPPED is outside the PENDING-only claim, so the atomic flip loses safely
+        when(orderTransactionExecutor.cancelOrderTransactional(eq(10L), any())).thenReturn(false);
 
         assertThatThrownBy(() -> orderService.cancelOrder(10L))
                 .isInstanceOf(InvalidTransitionException.class);
+    }
 
-        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any());
+    @Test
+    void cancelOrderAndReleaseStock_alreadyCancelled_isIdempotentNoOp() {
+        Order order = buildOrder(10L, owner, OrderStatus.CANCELLED);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+
+        assertThatCode(() -> orderService.cancelOrderAndReleaseStock(10L)).doesNotThrowAnyException();
+
+        verify(orderTransactionExecutor, never()).cancelOrderTransactional(any(), any());
+    }
+
+    @Test
+    void cancelOrderAndReleaseStock_lostRaceToNonCancellableState_throwsInvalidTransition() {
+        Order order = buildOrder(10L, owner, OrderStatus.PENDING);
+        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+        // e.g. the admin moved the order to PROCESSING between load and claim
+        when(orderTransactionExecutor.cancelOrderTransactional(
+                eq(10L), eq(EnumSet.of(OrderStatus.PENDING, OrderStatus.PAID)))).thenReturn(false);
+
+        assertThatThrownBy(() -> orderService.cancelOrderAndReleaseStock(10L))
+                .isInstanceOf(InvalidTransitionException.class);
     }
 
     @Test

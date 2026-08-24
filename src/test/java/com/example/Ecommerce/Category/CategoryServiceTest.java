@@ -16,6 +16,7 @@ import com.example.Ecommerce.Category.DTOs.response.GetAllCategoriesResponse;
 import com.example.Ecommerce.Common.Exceptions.CategoryAlreadyExistsException;
 import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
 import com.example.Ecommerce.Product.Product;
+import com.example.Ecommerce.Product.ProductRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,6 +30,9 @@ class CategoryServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private ProductRepository productRepository;
 
     @InjectMocks
     private CategoryServiceImpl categoryService;
@@ -121,13 +125,25 @@ class CategoryServiceTest {
     }
 
     @Test
-    void deleteCategories_found_deletesAndReturnsMessage() {
+    void deleteCategories_emptyCategory_deletesAndReturnsMessage() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.countByCategory_CategoryId(1L)).thenReturn(0L);
 
         String message = categoryService.deleteCategories(1L);
 
         assertThat(message).isEqualTo("Category removed Successfully");
         verify(categoryRepository).delete(category);
+    }
+
+    @Test
+    void deleteCategories_withProducts_throwsAndDoesNotDelete() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.countByCategory_CategoryId(1L)).thenReturn(3L);
+
+        assertThatThrownBy(() -> categoryService.deleteCategories(1L))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(categoryRepository, never()).delete(any());
     }
 
     @Test
