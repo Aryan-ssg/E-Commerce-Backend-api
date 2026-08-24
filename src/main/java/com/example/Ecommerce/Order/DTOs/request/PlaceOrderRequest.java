@@ -4,7 +4,8 @@ import java.util.List;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,12 +14,15 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class PlaceOrderRequest {
-    
-    @NotNull(message="Order items are required")
-   @Valid
+
+    @NotEmpty(message = "Order items are required")
+    @Valid
     private List<OrderItemsRequest> orderItems;
-    
 
     @NotBlank(message = "Shipping address is required")
     private String shippingAddress;
+
+    private String razorpayOrderId;
+    private String razorpayPaymentId;
+    private String razorpaySignature;
 }

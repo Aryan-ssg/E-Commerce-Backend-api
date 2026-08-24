@@ -1,251 +1,33 @@
 package com.example.Ecommerce.Order;
 
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
-
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import org.springframework.stereotype.Service;
-
-
-import com.example.Ecommerce.AppUser.AppUser;
-import com.example.Ecommerce.AppUser.AppUserRepository;
-import com.example.Ecommerce.Common.AuthenticationHelper;
-import com.example.Ecommerce.Common.Exceptions.InvalidTransitionException;
-import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
-import com.example.Ecommerce.Common.Exceptions.UnauthorizedAccessException;
 import com.example.Ecommerce.Order.DTOs.request.ChangeShippingAddressRequest;
-import com.example.Ecommerce.Order.DTOs.request.OrderItemsRequest;
 import com.example.Ecommerce.Order.DTOs.request.PlaceOrderRequest;
 import com.example.Ecommerce.Order.DTOs.request.UpdateOrderStatusRequest;
 import com.example.Ecommerce.Order.DTOs.response.ChangeShippingAddressResponse;
 import com.example.Ecommerce.Order.DTOs.response.GetOrderByIdResponse;
-import com.example.Ecommerce.Order.DTOs.response.OrderItemsResponse;
 import com.example.Ecommerce.Order.DTOs.response.PlaceOrderResponse;
 import com.example.Ecommerce.Order.DTOs.response.UpdateOrderStatusResponse;
-import com.example.Ecommerce.Product.Product;
-import com.example.Ecommerce.Product.ProductRepository;
 
-@Service
-public class OrderService {
+public interface OrderService {
 
-    private OrderRepository orderRepository;
-    private AppUserRepository appUserRepository;
-    private ProductRepository productRepository;
-    private AuthenticationHelper authenticationHelper;
+    List<GetOrderByIdResponse> getOrdersForCurrentUser();
 
-    public OrderService(OrderRepository orderRepository, AppUserRepository appUserRepository,
-            ProductRepository productRepository , AuthenticationHelper authenticationHelper) {
-        this.orderRepository = orderRepository;
-        this.appUserRepository = appUserRepository;
-        this.productRepository = productRepository;
-        this.authenticationHelper=authenticationHelper;
-    }
+    PlaceOrderResponse placeOrder(PlaceOrderRequest request);
 
-    public List<GetOrderByIdResponse> getOrdersForCurrentUser(){
-        AppUser currentUser=authenticationHelper.getCurrentUser();
+    PlaceOrderResponse verifyPaymentAndConfirmOrder(Long orderId, String razorpayPaymentId, String razorpaySignature);
 
-        List<Order> orders=orderRepository.findByUser_UserId(currentUser.getUserId());
+    void handlePaymentCaptured(String razorpayOrderId, String razorpayPaymentId, Integer amountInPaise);
 
+    void cancelOrderAndReleaseStock(Long orderId);
 
-        //Response
+    ChangeShippingAddressResponse changeShippingAddress(Long orderId, ChangeShippingAddressRequest request);
 
-        List<GetOrderByIdResponse> response=new ArrayList<>();
+    UpdateOrderStatusResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request);
 
+    GetOrderByIdResponse getOrderByOrderId(Long orderId);
 
-        for(Order order:orders){
-            List<OrderItemsResponse> orderItems=new ArrayList<>();
-
-            for(OrderItem item:order.getOrderItems()){
-                OrderItemsResponse orderItem=new OrderItemsResponse(
-                    item.getQuantity(),
-                    item.getProduct().getProductId(),
-                    item.getPriceAtCheckout()
-                );
-
-                orderItems.add(orderItem);
-            }
-
-
-            GetOrderByIdResponse orderResponse=new GetOrderByIdResponse(
-                order.getOrderId(),
-                order.getTotalPrice(),
-                order.getShippingAddress(),
-                order.getOrderDateTime(),
-                order.getOrderStatus(),
-                orderItems
-            
-            );
-
-            response.add(orderResponse);
-
-          
-        }
-        return response;
-
-    }
-
-    public PlaceOrderResponse placeOrder(PlaceOrderRequest request) {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        String userName = auth.getName();
-
-        AppUser user = appUserRepository.findByUsername(userName)
-                .orElseThrow(() -> new ResourceNotFoundException("User with Username : "+userName+" not found"));
-
-        Order order = new Order();
-
-        order.setUser(user);
-        order.setOrderDateTime(LocalDateTime.now());
-        order.setShippingAddress(request.getShippingAddress());
-        order.setOrderStatus(OrderStatus.PENDING);
-
-        int totalOrderPrice = 0;
-        List<OrderItemsResponse> orderItemsResponse = new ArrayList<>();
-        List<OrderItem> itemlist = new ArrayList<>();
-
-        for (OrderItemsRequest orderItem : request.getOrderItems()) {
-            Product product = productRepository.findById(orderItem.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+orderItem.getProductId()+" not found"));
-
-            OrderItem item = new OrderItem();
-
-            item.setOrder(order);
-            item.setProduct(product);
-            item.setQuantity(orderItem.getQuantity());
-            item.setPriceAtCheckout(product.getProductPrice());
-            orderItemsResponse
-                    .add(new OrderItemsResponse(item.getQuantity(), item.getProduct().getProductId(),
-                            item.getPriceAtCheckout()));
-
-            totalOrderPrice += product.getProductPrice() * orderItem.getQuantity();
-            itemlist.add(item);
-
-        }
-        order.setOrderItems(itemlist);
-        order.setTotalPrice(totalOrderPrice);
-
-        Order savedOrder = orderRepository.save(order);
-
-        // Response
-        PlaceOrderResponse response = new PlaceOrderResponse();
-
-        response.setOrderDateTime(savedOrder.getOrderDateTime());
-        response.setShippingAddress(savedOrder.getShippingAddress());
-        response.setOrderStatus(savedOrder.getOrderStatus());
-        response.setTotalPrice(savedOrder.getTotalPrice());
-        response.setOrderItems(orderItemsResponse);
-        response.setOrderId(savedOrder.getOrderId());
-        return response;
-
-    }
-
-    public ChangeShippingAddressResponse changeShippingAddress(Long orderId, ChangeShippingAddressRequest request) {
-
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : "+orderId + " not found"));
-
-
-
-        AppUser currentUser = authenticationHelper.getCurrentUser();
-
-        if(!order.getUser().getUserId().equals(currentUser.getUserId())){
-            throw new UnauthorizedAccessException("Unauthorized access");
-        }
-          
-        if (order.getOrderStatus() != OrderStatus.PENDING) {
-            throw new InvalidTransitionException("Shipping address can only be changed for pending orders.");
-        }
-
-        order.setShippingAddress(request.getNewShippingAddress());
-        orderRepository.save(order);
-
-        // Response
-        ChangeShippingAddressResponse response = new ChangeShippingAddressResponse(orderId, order.getShippingAddress());
-
-        return response;
-
-    }
-
-    public UpdateOrderStatusResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order with orderid : "+orderId+" not found"));
-
-
-        
-        OrderStatus currentStatus = order.getOrderStatus();
-
-        if (!currentStatus.canTransitionTo(request.getUpdatedStatus())) {
-            throw new InvalidTransitionException("An order with status : " +order.getOrderStatus() + " can not transition into "+ request.getUpdatedStatus());
-        }
-        order.setOrderStatus(request.getUpdatedStatus());
-        orderRepository.save(order);
-
-        // Response
-        UpdateOrderStatusResponse response = new UpdateOrderStatusResponse(orderId, request.getUpdatedStatus());
-        return response;
-
-    }
-
-    public GetOrderByIdResponse getOrderByOrderId(Long orderId) {
-
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order with orderid : "+orderId+" not found"));
-
-       
-
-        AppUser currentUser = authenticationHelper.getCurrentUser();
-
-        if(!order.getUser().getUserId().equals(currentUser.getUserId())){
-            throw new UnauthorizedAccessException("Unauthorized access");
-        }
-                
-        // Response
-        GetOrderByIdResponse response = new GetOrderByIdResponse();
-
-        response.setOrderDateTime(order.getOrderDateTime());
-        response.setOrderId(order.getOrderId());
-        response.setOrderStatus(order.getOrderStatus());
-        response.setShippingAddress(order.getShippingAddress());
-        response.setTotalPrice(order.getTotalPrice());
-
-        List<OrderItemsResponse> orderItemsResponse = new ArrayList<>();
-        for (OrderItem item : order.getOrderItems()) {
-            OrderItemsResponse orderItemResponse = new OrderItemsResponse();
-            orderItemResponse.setPriceAtCheckout(item.getPriceAtCheckout());
-            orderItemResponse.setProductId(item.getProduct().getProductId());
-            orderItemResponse.setQuantity(item.getQuantity());
-            orderItemsResponse.add(orderItemResponse);
-        }
-
-        response.setOrderItems(orderItemsResponse);
-
-        return response;
-    }
-
-    public Order cancelOrder(Long orderId){
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : "+orderId + " not found"));
-
-
-
-        AppUser currentUser = authenticationHelper.getCurrentUser();
-
-        if(!order.getUser().getUserId().equals(currentUser.getUserId())){
-            throw new UnauthorizedAccessException("Unauthorized access");
-        }
-          
-        if(order.getOrderStatus()!=OrderStatus.PENDING){
-            throw new InvalidTransitionException("Only Pending orders can be Cancelled.");
-        }
-        order.setOrderStatus(OrderStatus.CANCELLED);
-        return orderRepository.save(order);
-
-    }
+    Order cancelOrder(Long orderId);
 
 }

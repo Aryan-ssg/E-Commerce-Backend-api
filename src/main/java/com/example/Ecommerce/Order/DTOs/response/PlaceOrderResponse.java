@@ -28,5 +28,8 @@ public class PlaceOrderResponse {
     private OrderStatus orderStatus ;
 
     private List<OrderItemsResponse> orderItems;
+    
+    private String razorpayOrderId;
+    private String razorpayKeyId;
 
 }

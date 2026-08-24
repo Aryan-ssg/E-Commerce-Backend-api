@@ -18,6 +18,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,7 @@ import lombok.Setter;
 
 @Entity
 @Getter
+@Table(name="orders")
 @Setter
 @NoArgsConstructor
 public class Order {
@@ -51,5 +53,10 @@ public class Order {
     @OneToMany(mappedBy = "order",cascade=CascadeType.ALL,orphanRemoval=true)
     @JsonManagedReference
     private List<OrderItem> orderItems;
+
+    private String razorpayOrderId;
+    private String razorpayPaymentId;
+    private String razorpaySignature;
+    private LocalDateTime paymentDateTime;
 
 }
