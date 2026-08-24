@@ -32,6 +32,11 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Query("UPDATE RefreshToken rt SET rt.status = :status WHERE rt.user.id = :userId")
     int revokeAllForUser(@Param("userId") Long userId, @Param("status") RefreshToken.Status status);
 
-    List<RefreshToken> findExpiredTokens(LocalDateTime now);
+    @Modifying
+    @Transactional
+    @Query("UPDATE RefreshToken rt SET rt.status = :status WHERE rt.familyId = :familyId")
+    int revokeAllForFamily(@Param("familyId") String familyId, @Param("status") RefreshToken.Status status);
+
+    List<RefreshToken> findByExpiresAtBefore(LocalDateTime time);
 
 }

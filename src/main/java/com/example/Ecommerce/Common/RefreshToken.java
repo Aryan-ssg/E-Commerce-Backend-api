@@ -22,8 +22,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Table(name = "refresh_token", indexes = {
-        @Index(name = "idx_refresh_token_user_revoked", columnList = "user_id,revoked"),
-        @Index(name = "idx_refresh_token_jti", columnList = "jti", unique = true)
+        @Index(name = "idx_refresh_token_user_status", columnList = "user_id,status"),
+        @Index(name = "idx_refresh_token_jti", columnList = "jti", unique = true),
+        @Index(name = "idx_refresh_token_family", columnList = "family_id")
 })
 public class RefreshToken {
 
@@ -51,5 +52,7 @@ public class RefreshToken {
     private Status status = Status.ACTIVE;
 
     private Long replacedById;
+
+    private String familyId;
 
 }
