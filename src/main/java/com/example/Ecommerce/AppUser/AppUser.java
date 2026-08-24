@@ -38,6 +38,8 @@ public class AppUser {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    private Long tokenVersion = 0L;
+
     @OneToMany(mappedBy = "user",cascade=CascadeType.ALL,orphanRemoval = true)
     @JsonManagedReference
     private List<Order> orders;

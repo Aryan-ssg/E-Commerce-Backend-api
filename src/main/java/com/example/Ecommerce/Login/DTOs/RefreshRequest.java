@@ -1,5 +1,6 @@
 package com.example.Ecommerce.Login.DTOs;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginResponse {
-    private String accessToken;
+public class RefreshRequest {
+    @NotBlank(message = "Refresh token is required")
     private String refreshToken;
 }
