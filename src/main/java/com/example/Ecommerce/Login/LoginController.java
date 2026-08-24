@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.Ecommerce.AppUser.AppUser;
 import com.example.Ecommerce.AppUser.AppUserRepository;
+import com.example.Ecommerce.Common.JwtUserPrincipal;
 import com.example.Ecommerce.Common.JwtUtils;
 import com.example.Ecommerce.Common.RefreshTokenService;
 import com.example.Ecommerce.Login.DTOs.LoginRequest;
@@ -88,16 +90,21 @@ public class LoginController {
 
             return ResponseEntity.ok(new LoginResponse(newAccessToken, newRefreshToken));
 
+        } catch (RefreshTokenService.TokenReuseDetectedException e) {
+            // Runs outside validateAndRotate's rolled-back transaction so the
+            // revocation actually commits
+            refreshTokenService.revokeFamily(e.getStoredToken());
+            throw invalidEx;
         } catch (RefreshTokenService.InvalidRefreshTokenException e) {
             throw invalidEx;
         }
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
-        // For now, we'll just return success
-        // In a real implementation, you might want to revoke the current access token's jti
-        // For that, you'd need to extract jti from the Authorization header
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal JwtUserPrincipal principal) {
+        if (principal != null) {
+            refreshTokenService.revokeAllForUser(principal.getUserId());
+        }
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

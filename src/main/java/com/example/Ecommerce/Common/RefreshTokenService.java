@@ -5,7 +5,9 @@ import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +49,7 @@ public class RefreshTokenService {
         rt.setTokenHash(tokenHash);
         rt.setExpiresAt(LocalDateTime.now().plusSeconds(jwtUtils.getRefreshExpirationSeconds()));
         rt.setStatus(RefreshToken.Status.ACTIVE);
+        rt.setFamilyId(UUID.randomUUID().toString());
 
         return refreshTokenRepository.save(rt);
     }
@@ -60,15 +63,14 @@ public class RefreshTokenService {
                 .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found"));
 
         if (stored.getStatus() == RefreshToken.Status.REVOKED) {
-            // Token reuse detected - revoke entire family
-            revokeFamily(stored.getUser().getUserId(), stored.getId());
-            throw new InvalidRefreshTokenException("Refresh token already revoked (potential reuse detected)");
+            // Token reuse detected - the caller must revoke the family OUTSIDE this
+            // transaction, otherwise the revocation is rolled back when we throw
+            throw new TokenReuseDetectedException(stored);
         }
 
         if (stored.getStatus() == RefreshToken.Status.REPLACED) {
-            // Token reuse detected - revoke entire family (someone used an old token)
-            revokeFamily(stored.getUser().getUserId(), stored.getId());
-            throw new InvalidRefreshTokenException("Refresh token already used (potential reuse detected)");
+            // Token reuse detected - someone used an old token from a rotated chain
+            throw new TokenReuseDetectedException(stored);
         }
 
         if (!stored.getTokenHash().equals(tokenHash)) {
@@ -87,13 +89,14 @@ public class RefreshTokenService {
         String newJti = jwtUtils.extractJti(newRefreshToken);
         String newTokenHash = hashToken(newRefreshToken);
 
-        // Store new token first
+        // Store new token first, inheriting the old token's family
         RefreshToken newToken = new RefreshToken();
         newToken.setUser(oldToken.getUser());
         newToken.setJti(newJti);
         newToken.setTokenHash(newTokenHash);
         newToken.setExpiresAt(LocalDateTime.now().plusSeconds(jwtUtils.getRefreshExpirationSeconds()));
         newToken.setStatus(RefreshToken.Status.ACTIVE);
+        newToken.setFamilyId(oldToken.getFamilyId());
         newToken = refreshTokenRepository.save(newToken);
 
         // Mark old as replaced with new token's ID
@@ -112,14 +115,20 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public void revokeFamily(Long userId, Long triggeringTokenId) {
-        // Revoke all tokens for this user
-        revokeAllForUser(userId);
+    public void revokeFamily(RefreshToken triggeringToken) {
+        String familyId = triggeringToken.getFamilyId();
+        if (familyId == null) {
+            // Pre-migration row with no family recorded - fall back to full revocation
+            revokeAllForUser(triggeringToken.getUser().getUserId());
+            return;
+        }
+        refreshTokenRepository.revokeAllForFamily(familyId, RefreshToken.Status.REVOKED);
     }
 
+    @Scheduled(fixedDelay = 3600000)
     @Transactional
     public void cleanupExpired() {
-        List<RefreshToken> expired = refreshTokenRepository.findExpiredTokens(LocalDateTime.now());
+        List<RefreshToken> expired = refreshTokenRepository.findByExpiresAtBefore(LocalDateTime.now());
         for (RefreshToken rt : expired) {
             if (rt.getStatus() == RefreshToken.Status.ACTIVE) {
                 rt.setStatus(RefreshToken.Status.REVOKED);
@@ -135,6 +144,21 @@ public class RefreshTokenService {
     public static class InvalidRefreshTokenException extends RuntimeException {
         public InvalidRefreshTokenException(String message) {
             super(message);
+        }
+    }
+
+    // Carries the offending token so the caller can revoke its family in a
+    // separate, committed transaction before rejecting the request.
+    public static class TokenReuseDetectedException extends InvalidRefreshTokenException {
+        private final RefreshToken storedToken;
+
+        public TokenReuseDetectedException(RefreshToken storedToken) {
+            super("Invalid refresh token");
+            this.storedToken = storedToken;
+        }
+
+        public RefreshToken getStoredToken() {
+            return storedToken;
         }
     }
 }
