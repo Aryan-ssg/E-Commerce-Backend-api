@@ -1,15 +1,21 @@
 package com.example.Ecommerce.Product;
 
+import java.util.ArrayList;
 import java.util.List;
 
-
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-
 
 import com.example.Ecommerce.Category.Category;
 import com.example.Ecommerce.Category.CategoryRepository;
+import com.example.Ecommerce.Common.DTOs.PagedResponse;
 import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
+import com.example.Ecommerce.Product.DTOs.request.ProductRequest;
+import com.example.Ecommerce.Product.DTOs.request.UpdateProductRequest;
+import com.example.Ecommerce.Product.DTOs.response.ProductAdminResponse;
+import com.example.Ecommerce.Product.DTOs.response.ProductResponse;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -23,53 +29,112 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
-    }
+    public PagedResponse<ProductResponse> getAllProducts(
+            String name, Long categoryId, Integer minPrice, Integer maxPrice, Boolean inStock, Pageable pageable) {
 
-    @Override
-    public Product getProductById(Long productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+productId+" not found"));
+        Specification<Product> spec = Specification.allOf();
 
-        return product;
-
-    }
-
-    @Override
-    public List<Product> getProductsByCategoryId(Long categoryId) {
-
-        if (!categoryRepository.existsById(categoryId)) {
-            throw new ResourceNotFoundException("Category with categoryid : "+categoryId+" not found");
+        if (name != null && !name.isBlank()) {
+            spec = spec.and(ProductSpecifications.hasNameLike(name));
         }
-        return productRepository.findByCategory_CategoryId(categoryId);
+        if (categoryId != null) {
+            spec = spec.and(ProductSpecifications.hasCategoryId(categoryId));
+        }
+        if (minPrice != null) {
+            spec = spec.and(ProductSpecifications.hasMinPrice(minPrice));
+        }
+        if (maxPrice != null) {
+            spec = spec.and(ProductSpecifications.hasMaxPrice(maxPrice));
+        }
+        if (inStock != null && inStock) {
+            spec = spec.and(ProductSpecifications.inStockOnly());
+        }
+
+        Page<Product> productPage = productRepository.findAll(spec, pageable);
+
+        List<ProductResponse> content = new ArrayList<>();
+        for (Product product : productPage.getContent()) {
+            content.add(new ProductResponse(
+                    product.getProductId(),
+                    product.getProductName(),
+                    product.getProductPrice(),
+                    product.getCategory().getCategoryName()));
+        }
+
+        return new PagedResponse<>(
+                content,
+                productPage.getNumber(),
+                productPage.getSize(),
+                productPage.getTotalElements(),
+                productPage.getTotalPages(),
+                productPage.isLast());
+
     }
 
     @Override
-    public Product createProduct(Long categoryId, Product product) {
+    public ProductResponse getProductById(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Product with productid : " + productId + " not found"));
+
+        ProductResponse response = new ProductResponse(product.getProductId(),
+                product.getProductName(),
+                product.getProductPrice(),
+                product.getCategory().getCategoryName());
+        return response;
+
+    }
+
+
+    @Override
+    public ProductAdminResponse createProduct(Long categoryId, ProductRequest product) {
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category with categoryid : "+categoryId+" not found"));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Category with categoryid : " + categoryId + " not found"));
 
-        product.setCategory(category);
+        Product requestProduct = new Product();
+        requestProduct.setCategory(category);
+        requestProduct.setProductName(product.getProductName());
+        requestProduct.setProductPrice(product.getProductPrice());
+        requestProduct.setStock(product.getStock());
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(requestProduct);
+
+        ProductAdminResponse response = new ProductAdminResponse(savedProduct.getProductId(),
+                savedProduct.getProductName(),
+                savedProduct.getProductPrice(),
+                category.getCategoryName(),
+                savedProduct.getStock());
+
+        return response;
 
     }
 
     @Override
-    public Product updateProduct(Long productId, Product updatedProduct) {
+    public ProductAdminResponse updateProduct(Long productId, UpdateProductRequest updatedProduct) {
         Product existingProduct = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+productId+" not found"));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Product with productid : " + productId + " not found"));
 
         existingProduct.setProductName(updatedProduct.getProductName());
         existingProduct.setProductPrice(updatedProduct.getProductPrice());
-        return productRepository.save(existingProduct);
+
+        Product savedProduct = productRepository.save(existingProduct);
+
+        ProductAdminResponse response = new ProductAdminResponse(savedProduct.getProductId(),
+                savedProduct.getProductName(),
+                savedProduct.getProductPrice(),
+                savedProduct.getCategory().getCategoryName(),
+                savedProduct.getStock());
+
+        return response;
     }
 
     @Override
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product with productid : "+productId+" not found"));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Product with productid : " + productId + " not found"));
 
         productRepository.delete(product);
 

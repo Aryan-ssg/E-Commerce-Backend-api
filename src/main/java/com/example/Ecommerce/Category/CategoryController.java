@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.Ecommerce.Category.DTOs.request.CategoryRequest;
+import com.example.Ecommerce.Category.DTOs.response.CategoryResponse;
+import com.example.Ecommerce.Category.DTOs.response.GetAllCategoriesResponse;
 
 import jakarta.validation.Valid;
 
@@ -28,16 +31,16 @@ public class CategoryController {
     }
 
     @GetMapping("/public/categories")
-    public ResponseEntity<List<Category>> getAllCategories() {
-        List<Category> categories = categoryService.getAllCategories();
+    public ResponseEntity<List<GetAllCategoriesResponse>> getAllCategories() {
+        List<GetAllCategoriesResponse> categories = categoryService.getAllCategories();
         return ResponseEntity.status(HttpStatus.OK).body(categories);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/admin/categories")
-    public ResponseEntity<Category> createCategories(@Valid @RequestBody Category category) {
+    public ResponseEntity<CategoryResponse> createCategories(@Valid @RequestBody CategoryRequest category) {
 
-        Category savedCategory=categoryService.createCategories(category);
+        CategoryResponse savedCategory=categoryService.createCategories(category);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedCategory);
 
     }
@@ -55,9 +58,9 @@ public class CategoryController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/admin/categories/{categoryId}")
-    public ResponseEntity<Category> updateCategories(@Valid @RequestBody Category category, @PathVariable Long categoryId) {
+    public ResponseEntity<CategoryResponse> updateCategories(@Valid @RequestBody CategoryRequest category, @PathVariable Long categoryId) {
         
-            Category savedCategory = categoryService.updateCategories(category, categoryId);
+            CategoryResponse savedCategory = categoryService.updateCategories(category, categoryId);
             return ResponseEntity.status(HttpStatus.OK).body(savedCategory);
       
 

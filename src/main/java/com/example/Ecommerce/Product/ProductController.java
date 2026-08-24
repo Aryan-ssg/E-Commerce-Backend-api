@@ -1,7 +1,9 @@
 package com.example.Ecommerce.Product;
 
-import java.util.List;
 
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,7 +14,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.example.Ecommerce.Common.DTOs.PagedResponse;
+import com.example.Ecommerce.Product.DTOs.request.ProductRequest;
+import com.example.Ecommerce.Product.DTOs.request.UpdateProductRequest;
+import com.example.Ecommerce.Product.DTOs.response.ProductAdminResponse;
+import com.example.Ecommerce.Product.DTOs.response.ProductResponse;
 
 import jakarta.validation.Valid;
 
@@ -28,20 +37,19 @@ public class ProductController {
     }
 
     @GetMapping("/public/products")
-    public ResponseEntity<List<Product>> getAllProducts() {
+    public ResponseEntity<PagedResponse<ProductResponse>> getAllProducts(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
+            @RequestParam(required = false) Boolean inStock,
+            @PageableDefault(size = 20, sort = "productId") Pageable pageable) {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(productService.getAllProducts());
-
-    }
-
-    @GetMapping("/public/categories/{categoryId}/products")
-    public ResponseEntity<List<Product>> getProductsByCategoryId(@Valid @PathVariable Long categoryId) {
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(productService.getProductsByCategoryId(categoryId));
+                .body(productService.getAllProducts(name, categoryId, minPrice, maxPrice, inStock, pageable));
     }
 
     @GetMapping("/public/products/{productId}")
-    public ResponseEntity<Product> getProductById(@Valid @PathVariable Long productId) {
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long productId) {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(productService.getProductById(productId));
@@ -50,7 +58,8 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/admin/categories/{categoryId}/products")
-    public ResponseEntity<Product> createProduct(@Valid @PathVariable Long categoryId, @RequestBody Product product) {
+    public ResponseEntity<ProductAdminResponse> createProduct(@PathVariable Long categoryId,
+            @Valid @RequestBody ProductRequest product) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(productService.createProduct(categoryId, product));
@@ -59,7 +68,8 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/admin/products/{productId}")
-    public ResponseEntity<Product> updateProduct(@Valid @PathVariable Long productId, @RequestBody Product product) {
+    public ResponseEntity<ProductAdminResponse> updateProduct(@PathVariable Long productId,
+            @Valid @RequestBody UpdateProductRequest product) {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(productService.updateProduct(productId, product));
@@ -68,10 +78,11 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/admin/products/{productId}")
-    public ResponseEntity<Product> deleteProduct(@Valid @PathVariable Long productId) {
+    public ResponseEntity<String> deleteProduct(@PathVariable Long productId) {
 
         productService.deleteProduct(productId);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.OK)
+                .body("Product with ProductId : " + productId + " successfully deleted");
 
     }
 

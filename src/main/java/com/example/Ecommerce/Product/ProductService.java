@@ -1,17 +1,23 @@
 package com.example.Ecommerce.Product;
 
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+
+import com.example.Ecommerce.Common.DTOs.PagedResponse;
+import com.example.Ecommerce.Product.DTOs.request.ProductRequest;
+import com.example.Ecommerce.Product.DTOs.request.UpdateProductRequest;
+import com.example.Ecommerce.Product.DTOs.response.ProductAdminResponse;
+import com.example.Ecommerce.Product.DTOs.response.ProductResponse;
 
 public interface ProductService {
-    List<Product> getAllProducts();
+    PagedResponse<ProductResponse> getAllProducts(
+            String name, Long categoryId, Integer minPrice, Integer maxPrice, Boolean inStock, Pageable pageable);
 
-    List<Product> getProductsByCategoryId(Long categoryId);
+    ProductResponse getProductById(Long productId);
 
-    Product getProductById(Long productId);
+    ProductAdminResponse createProduct(Long categoryId, ProductRequest product);
 
-    Product createProduct(Long categoryId, Product product);
-
-    Product updateProduct(Long productId, Product updatedProduct);
+    ProductAdminResponse updateProduct(Long productId, UpdateProductRequest updatedProduct);
 
     void deleteProduct(Long productId);
+
 }
