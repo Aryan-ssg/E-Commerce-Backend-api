@@ -11,7 +11,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,15 +34,18 @@ public class Product {
     private String productName;
 
     @Positive(message = "Price must be positive")
-    private int productPrice;
+    @NotNull(message = "Price is required")
+    private Integer productPrice;
 
-    @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="category_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
     @JsonBackReference
     private Category category;
 
-    
+    @PositiveOrZero(message = "stock cannot be negative")
+    @NotNull(message = "Stock is required")
+    private Integer stock;
 
+ 
 
-    
 }
