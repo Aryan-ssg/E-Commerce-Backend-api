@@ -56,6 +56,8 @@ public class CartServiceImpl implements CartService {
                 : request.getQuantity();
         validateAvailableStock(product, requestedQuantity);
 
+        boolean itemAlreadyInCart = existingItem != null;
+
         if (existingItem != null) {
             existingItem.setQuantity(existingItem.getQuantity() + request.getQuantity());
         } else {
@@ -67,7 +69,9 @@ public class CartServiceImpl implements CartService {
         }
 
         Cart savedCart = cartRepository.save(cart);
-        return buildCartResponse(savedCart);
+        CartResponse response = buildCartResponse(savedCart);
+        response.setItemAlreadyInCart(itemAlreadyInCart);
+        return response;
     }
 
     @Override
@@ -159,6 +163,6 @@ public class CartServiceImpl implements CartService {
                     lineTotal));
         }
 
-        return new CartResponse(cart.getCartId(), itemResponses, totalPrice);
+        return new CartResponse(cart.getCartId(), itemResponses, totalPrice, false);
     }
 }

@@ -49,5 +49,18 @@ Thumbs.db
 *.swo
 *~
 
-# Maven Wrapper (keep scripts, ignore downloaded jar)
-.mvn/wrapper/maven-wrapper.jar
+# Documentation (local only)
+workflows.md
+
+
+
+# Node.js
+node_modules/
+
+# Vite temp file
+vite.config.ts.timestamp-*.mjs
+frontend/vite.config.ts.timestamp-*.mjs
+frontend/vite-env.d.ts
+
+# Local dev scripts
+start.sh

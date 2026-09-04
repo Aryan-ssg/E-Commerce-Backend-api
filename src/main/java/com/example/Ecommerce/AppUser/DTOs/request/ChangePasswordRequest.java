@@ -1,5 +1,6 @@
 package com.example.Ecommerce.AppUser.DTOs.request;
 
+import com.example.Ecommerce.Common.Validation.FairPassword;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -17,5 +18,6 @@ public class ChangePasswordRequest {
 
     @NotBlank(message = "New password is required")
     @Size(min = 8, message = "New password must be at least 8 characters")
+    @FairPassword
     private String newPassword;
 }

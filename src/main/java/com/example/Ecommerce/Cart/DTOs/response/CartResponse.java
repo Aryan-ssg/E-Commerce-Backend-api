@@ -16,4 +16,5 @@ public class CartResponse {
     private Long cartId;
     private List<CartItemResponse> items;
     private Integer totalPrice;
+    private Boolean itemAlreadyInCart;
 }

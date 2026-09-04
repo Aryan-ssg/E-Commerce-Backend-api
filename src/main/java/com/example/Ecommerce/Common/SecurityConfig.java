@@ -45,7 +45,8 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable());
         http.cors(Customizer.withDefaults());
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        http.authorizeHttpRequests(requests -> requests.requestMatchers("/api/public/**", "/api/payment/webhook").permitAll()
+        http.authorizeHttpRequests(requests -> requests.requestMatchers("/api/public/**", "/api/payment/webhook", "/uploads/**",
+                        "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated());
 
         http.exceptionHandling(e -> e.authenticationEntryPoint(authenticationEntryPoint));

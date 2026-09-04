@@ -18,6 +18,7 @@ import com.example.Ecommerce.Common.AuthenticationHelper;
 import com.example.Ecommerce.Common.DTOs.PagedResponse;
 import com.example.Ecommerce.Common.Exceptions.UserAlreadyExistsException;
 import com.example.Ecommerce.Common.RefreshTokenService;
+import com.example.Ecommerce.Common.Validation.PasswordStrength;
 
 @Service
 public class AppUserServiceImpl implements AppUserService {
@@ -37,6 +38,9 @@ public class AppUserServiceImpl implements AppUserService {
     @Override
     @Transactional
     public void registerUser(RegisterRequest request) {
+        if (!PasswordStrength.isAtLeastFair(request.getPassword())) {
+            throw new IllegalArgumentException("Password must be at least 'Fair' strength (8+ characters with at least 2 of: lowercase, uppercase, number, special character)");
+        }
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new UserAlreadyExistsException();
         }
@@ -59,6 +63,9 @@ public class AppUserServiceImpl implements AppUserService {
     @Override
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
+        if (!PasswordStrength.isAtLeastFair(request.getNewPassword())) {
+            throw new IllegalArgumentException("Password must be at least 'Fair' strength (8+ characters with at least 2 of: lowercase, uppercase, number, special character)");
+        }
         AppUser currentUser = authenticationHelper.getCurrentUser();
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), currentUser.getPassword())) {

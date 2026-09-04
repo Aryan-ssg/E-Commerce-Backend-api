@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.example.Ecommerce.Common.DTOs.ErrorResponse;
 import com.example.Ecommerce.Common.Exceptions.CategoryAlreadyExistsException;
+import com.example.Ecommerce.Payment.RazorpayService.PaymentException;
 import com.example.Ecommerce.Common.Exceptions.InsufficientStockException;
 import com.example.Ecommerce.Common.Exceptions.InvalidTransitionException;
 import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
@@ -117,6 +118,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(409, e.getMessage()));
+    }
+
+    // Surfaces payment-gateway failures (e.g. missing/invalid Razorpay keys, or the
+    // gateway being unreachable) as a clear message instead of the generic 500,
+    // so checkout can tell the user what actually went wrong.
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentException(PaymentException e) {
+        log.error("Payment gateway error", e);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(new ErrorResponse(502, "Payment could not be started. The payment gateway is unavailable - please try again later."));
     }
 
     // Rethrow security exceptions so the filter chain produces proper 401/403
