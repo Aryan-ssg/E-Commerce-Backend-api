@@ -26,6 +26,8 @@ public class GetOrderByIdResponse {
 
     private String landmark;
 
+    private String contactNumber;
+
     private LocalDateTime orderDateTime;
 
     private OrderStatus orderStatus;

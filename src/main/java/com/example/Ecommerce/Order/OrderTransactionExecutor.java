@@ -39,6 +39,7 @@ class OrderTransactionExecutor {
         order.setAddressLine(request.getAddressLine());
         order.setPinCode(request.getPinCode());
         order.setLandmark(request.getLandmark());
+        order.setContactNumber(request.getContactNumber());
         order.setOrderStatus(OrderStatus.PENDING);
         
         if (request.getRazorpayOrderId() != null) {

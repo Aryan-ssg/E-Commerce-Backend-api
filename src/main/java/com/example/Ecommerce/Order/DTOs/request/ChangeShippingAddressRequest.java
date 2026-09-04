@@ -19,4 +19,8 @@ public class ChangeShippingAddressRequest {
     private String pinCode;
 
     private String landmark;
+
+    @NotBlank(message = "Contact number is required")
+    @Pattern(regexp = "^\\d{10}$", message = "Enter a valid 10-digit phone number")
+    private String contactNumber;
 }

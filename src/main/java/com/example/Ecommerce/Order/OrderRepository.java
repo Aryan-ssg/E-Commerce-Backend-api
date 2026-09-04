@@ -18,10 +18,11 @@ public interface OrderRepository extends JpaRepository<Order,Long>   {
             LEFT JOIN FETCH o.orderItems oi
             LEFT JOIN FETCH oi.product
             WHERE o.user.userId = :userId
+            ORDER BY o.orderDateTime DESC
             """)
     List<Order> findUserOrdersWithItems(@Param("userId") Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE Order o SET o.orderStatus = :newStatus WHERE o.orderId = :orderId AND o.orderStatus = :oldStatus")
     int updateStatusIfCurrent(@Param("orderId") Long orderId, @Param("oldStatus") OrderStatus oldStatus, @Param("newStatus") OrderStatus newStatus);
@@ -49,6 +50,15 @@ public interface OrderRepository extends JpaRepository<Order,Long>   {
     Optional<Order> findWithItemsById(@Param("orderId") Long orderId);
 
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("UPDATE Order o SET o.orderStatus = :newStatus, o.razorpayPaymentId = :paymentId, o.paymentDateTime = :paymentTime WHERE o.orderId = :orderId AND o.orderStatus = :oldStatus")
+    int updateStatusAndPaymentDetails(@Param("orderId") Long orderId,
+                                      @Param("oldStatus") OrderStatus oldStatus,
+                                      @Param("newStatus") OrderStatus newStatus,
+                                      @Param("paymentId") String paymentId,
+                                      @Param("paymentTime") LocalDateTime paymentTime);
 
     @Query("SELECT o FROM Order o WHERE o.orderStatus = :status AND o.orderDateTime < :cutoff")
     List<Order> findStaleOrders(@Param("status") OrderStatus status, @Param("cutoff") LocalDateTime cutoff);

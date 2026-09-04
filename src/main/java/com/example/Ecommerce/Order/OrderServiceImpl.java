@@ -73,6 +73,7 @@ public class OrderServiceImpl implements OrderService {
                     order.getAddressLine(),
                     order.getPinCode(),
                     order.getLandmark(),
+                    order.getContactNumber(),
                     order.getOrderDateTime(),
                     order.getOrderStatus(),
                     orderItems);
@@ -124,6 +125,7 @@ public class OrderServiceImpl implements OrderService {
         response.setAddressLine(savedOrder.getAddressLine());
         response.setPinCode(savedOrder.getPinCode());
         response.setLandmark(savedOrder.getLandmark());
+        response.setContactNumber(savedOrder.getContactNumber());
         response.setOrderStatus(savedOrder.getOrderStatus());
         response.setTotalPrice(savedOrder.getTotalPrice());
         response.setOrderItems(orderItemsResponse);
@@ -149,8 +151,9 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalStateException("Order does not have a Razorpay order ID");
         }
 
+        // Idempotent: if already processed (e.g. by webhook), return current state
         if (order.getOrderStatus() != OrderStatus.PENDING) {
-            throw new InvalidTransitionException("Order is not in pending state");
+            return buildPlaceOrderResponse(order);
         }
 
         boolean isValid = razorpayService.verifyPaymentSignature(
@@ -163,35 +166,16 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Payment verification failed");
         }
 
-        // Atomic conditional update: only transitions if still PENDING
-        int updated = orderRepository.updateStatusIfCurrent(orderId, OrderStatus.PENDING, OrderStatus.PAID);
-        if (updated == 0) {
-            // Already processed (idempotent) - reload and return current state
-            order = orderRepository.findById(orderId).orElseThrow();
-        } else {
-            order.setRazorpayPaymentId(razorpayPaymentId);
-            order.setRazorpaySignature(razorpaySignature);
-            order.setOrderStatus(OrderStatus.PAID);
-            order.setPaymentDateTime(LocalDateTime.now());
-        }
+        // Direct entity update — the status check above plus the @Transactional
+        // boundary ensure correctness. The webhook's parallel path uses an atomic
+        // UPDATE and is also idempotent, so concurrent calls are safe.
+        order.setOrderStatus(OrderStatus.PAID);
+        order.setRazorpayPaymentId(razorpayPaymentId);
+        order.setRazorpaySignature(razorpaySignature);
+        order.setPaymentDateTime(LocalDateTime.now());
+        orderRepository.save(order);
 
-        List<OrderItemsResponse> orderItemsResponse = new ArrayList<>();
-        for (OrderItem item : order.getOrderItems()) {
-            orderItemsResponse.add(new OrderItemsResponse(
-                    item.getQuantity(), item.getProduct().getProductId(), item.getPriceAtCheckout()));
-        }
-
-        PlaceOrderResponse response = new PlaceOrderResponse();
-        response.setOrderDateTime(order.getOrderDateTime());
-        response.setAddressLine(order.getAddressLine());
-        response.setPinCode(order.getPinCode());
-        response.setLandmark(order.getLandmark());
-        response.setOrderStatus(order.getOrderStatus());
-        response.setTotalPrice(order.getTotalPrice());
-        response.setOrderItems(orderItemsResponse);
-        response.setOrderId(order.getOrderId());
-        response.setRazorpayOrderId(order.getRazorpayOrderId());
-        return response;
+        return buildPlaceOrderResponse(order);
     }
 
     // Called from webhook. Trust comes from the verified X-Razorpay-Signature header
@@ -218,12 +202,13 @@ public class OrderServiceImpl implements OrderService {
             return;
         }
 
-        // Atomic conditional update
-        int updated = orderRepository.updateStatusIfCurrent(order.getOrderId(), OrderStatus.PENDING, OrderStatus.PAID);
+        // Single atomic UPDATE: sets status + payment details in one shot.
+        // Avoids the previous pattern of bulk UPDATE → clear PC → findById → save
+        // which caused cascading conflicts with the concurrent verify-payment path.
+        int updated = orderRepository.updateStatusAndPaymentDetails(
+                order.getOrderId(), OrderStatus.PENDING, OrderStatus.PAID,
+                razorpayPaymentId, LocalDateTime.now());
         if (updated > 0) {
-            order.setRazorpayPaymentId(razorpayPaymentId);
-            order.setPaymentDateTime(LocalDateTime.now());
-            orderRepository.save(order);
             log.info("Order {} marked PAID via webhook (payment {})", order.getOrderId(), razorpayPaymentId);
         }
     }
@@ -274,11 +259,12 @@ public class OrderServiceImpl implements OrderService {
         order.setAddressLine(request.getAddressLine());
         order.setPinCode(request.getPinCode());
         order.setLandmark(request.getLandmark());
+        order.setContactNumber(request.getContactNumber());
         orderRepository.save(order);
 
         // Response
         ChangeShippingAddressResponse response = new ChangeShippingAddressResponse(
-                orderId, order.getAddressLine(), order.getPinCode(), order.getLandmark());
+                orderId, order.getAddressLine(), order.getPinCode(), order.getLandmark(), order.getContactNumber());
 
         return response;
 
@@ -334,6 +320,7 @@ public class OrderServiceImpl implements OrderService {
         response.setAddressLine(order.getAddressLine());
         response.setPinCode(order.getPinCode());
         response.setLandmark(order.getLandmark());
+        response.setContactNumber(order.getContactNumber());
         response.setTotalPrice(order.getTotalPrice());
 
         List<OrderItemsResponse> orderItemsResponse = new ArrayList<>();
@@ -376,6 +363,27 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : " + orderId + " not found"));
 
+    }
+
+    private PlaceOrderResponse buildPlaceOrderResponse(Order order) {
+        List<OrderItemsResponse> orderItemsResponse = new ArrayList<>();
+        for (OrderItem item : order.getOrderItems()) {
+            orderItemsResponse.add(new OrderItemsResponse(
+                    item.getQuantity(), item.getProduct().getProductId(), item.getPriceAtCheckout()));
+        }
+
+        PlaceOrderResponse response = new PlaceOrderResponse();
+        response.setOrderDateTime(order.getOrderDateTime());
+        response.setAddressLine(order.getAddressLine());
+        response.setPinCode(order.getPinCode());
+        response.setLandmark(order.getLandmark());
+        response.setContactNumber(order.getContactNumber());
+        response.setOrderStatus(order.getOrderStatus());
+        response.setTotalPrice(order.getTotalPrice());
+        response.setOrderItems(orderItemsResponse);
+        response.setOrderId(order.getOrderId());
+        response.setRazorpayOrderId(order.getRazorpayOrderId());
+        return response;
     }
 
 }

@@ -27,6 +27,8 @@ public class PlaceOrderResponse {
 
     private String landmark;
 
+    private String contactNumber;
+
     private LocalDateTime orderDateTime;
 
     private OrderStatus orderStatus ;

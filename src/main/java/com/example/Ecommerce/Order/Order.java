@@ -50,6 +50,8 @@ public class Order {
     @Column(nullable = true)
     private String landmark;
 
+    @Column(nullable = false)
+    private String contactNumber;
 
     private LocalDateTime orderDateTime;
 

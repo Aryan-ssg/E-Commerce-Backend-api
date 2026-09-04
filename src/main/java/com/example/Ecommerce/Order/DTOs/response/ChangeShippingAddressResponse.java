@@ -18,4 +18,6 @@ public class ChangeShippingAddressResponse {
 
     private String landmark;
 
+    private String contactNumber;
+
 }
