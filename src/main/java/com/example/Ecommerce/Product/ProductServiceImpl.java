@@ -7,11 +7,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.Ecommerce.Category.Category;
 import com.example.Ecommerce.Category.CategoryRepository;
 import com.example.Ecommerce.Common.DTOs.PagedResponse;
 import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
+import com.example.Ecommerce.Common.FileStorageService;
 import com.example.Ecommerce.Product.DTOs.request.ProductRequest;
 import com.example.Ecommerce.Product.DTOs.request.UpdateProductRequest;
 import com.example.Ecommerce.Product.DTOs.response.ProductAdminResponse;
@@ -22,10 +24,13 @@ public class ProductServiceImpl implements ProductService {
 
     private ProductRepository productRepository;
     private CategoryRepository categoryRepository;
+    private FileStorageService fileStorageService;
 
-    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository,
+            FileStorageService fileStorageService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -62,7 +67,8 @@ public class ProductServiceImpl implements ProductService {
                     product.getProductName(),
                     product.getProductPrice(),
                     product.getCategory().getCategoryName(),
-                    product.getImageUrl()));
+                    product.getImageUrl(),
+                    product.getStock()));
         }
 
         return new PagedResponse<>(
@@ -85,11 +91,11 @@ public class ProductServiceImpl implements ProductService {
                 product.getProductName(),
                 product.getProductPrice(),
                 product.getCategory().getCategoryName(),
-                product.getImageUrl());
+                product.getImageUrl(),
+                product.getStock());
         return response;
 
     }
-
 
     @Override
     public ProductAdminResponse createProduct(Long categoryId, ProductRequest product) {
@@ -149,6 +155,26 @@ public class ProductServiceImpl implements ProductService {
         // from the catalog and prevent further sales.
         product.setActive(false);
         productRepository.save(product);
+    }
+
+    @Override
+    public ProductAdminResponse uploadImage(Long productId, MultipartFile file) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Product with productid : " + productId + " not found"));
+
+        fileStorageService.deleteFile(product.getImageUrl());
+        String imageUrl = fileStorageService.storeFile(file);
+        product.setImageUrl(imageUrl);
+
+        Product savedProduct = productRepository.save(product);
+
+        return new ProductAdminResponse(savedProduct.getProductId(),
+                savedProduct.getProductName(),
+                savedProduct.getProductPrice(),
+                savedProduct.getCategory().getCategoryName(),
+                savedProduct.getStock(),
+                savedProduct.getImageUrl());
     }
 
 }

@@ -24,6 +24,8 @@ public class ProductResponse {
 
     private String imageUrl;
 
+    private int stock;
+
    
 
 

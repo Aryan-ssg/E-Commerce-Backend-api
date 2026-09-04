@@ -1,6 +1,7 @@
 package com.example.Ecommerce.Product;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.Ecommerce.Common.DTOs.PagedResponse;
 import com.example.Ecommerce.Product.DTOs.request.ProductRequest;
@@ -19,5 +20,7 @@ public interface ProductService {
     ProductAdminResponse updateProduct(Long productId, UpdateProductRequest updatedProduct);
 
     void deleteProduct(Long productId);
+
+    ProductAdminResponse uploadImage(Long productId, MultipartFile file);
 
 }

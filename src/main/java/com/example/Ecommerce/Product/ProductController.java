@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.Ecommerce.Common.DTOs.PagedResponse;
 import com.example.Ecommerce.Product.DTOs.request.ProductRequest;
@@ -84,6 +85,15 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body("Product with ProductId : " + productId + " successfully deleted");
 
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/admin/products/{productId}/image")
+    public ResponseEntity<ProductAdminResponse> uploadProductImage(
+            @PathVariable Long productId,
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(productService.uploadImage(productId, file));
     }
 
 }
