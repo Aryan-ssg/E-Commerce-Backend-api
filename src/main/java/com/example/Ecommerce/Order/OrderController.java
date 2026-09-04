@@ -2,6 +2,9 @@ package com.example.Ecommerce.Order;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.Ecommerce.Order.DTOs.request.ChangeShippingAddressRequest;
 import com.example.Ecommerce.Order.DTOs.request.PlaceOrderRequest;
 import com.example.Ecommerce.Order.DTOs.request.UpdateOrderStatusRequest;
+import com.example.Ecommerce.Order.DTOs.response.AdminOrderResponse;
 import com.example.Ecommerce.Order.DTOs.response.ChangeShippingAddressResponse;
 import com.example.Ecommerce.Order.DTOs.response.GetOrderByIdResponse;
 import com.example.Ecommerce.Order.DTOs.response.PlaceOrderResponse;
@@ -86,6 +90,13 @@ public class OrderController {
         
         return ResponseEntity.status(HttpStatus.OK).body("Order has been cancelled");
 
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/orders")
+    public ResponseEntity<Page<AdminOrderResponse>> getAllOrders(
+            @PageableDefault(size = 20, sort = "orderDateTime") Pageable pageable) {
+        return ResponseEntity.status(HttpStatus.OK).body(orderService.getAllOrders(pageable));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

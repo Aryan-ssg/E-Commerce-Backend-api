@@ -1,0 +1,13 @@
+target/
+.env
+.env.*
+!.env.example
+.git/
+.gitignore
+.vscode/
+uploads/
+*.log
+HELP.md
+README.md
+workflows.md
+start.sh

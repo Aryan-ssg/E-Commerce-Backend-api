@@ -6,6 +6,8 @@ import java.util.EnumSet;
 import java.util.List;
 
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,7 @@ import com.example.Ecommerce.Common.Exceptions.UnauthorizedAccessException;
 import com.example.Ecommerce.Order.DTOs.request.ChangeShippingAddressRequest;
 import com.example.Ecommerce.Order.DTOs.request.PlaceOrderRequest;
 import com.example.Ecommerce.Order.DTOs.request.UpdateOrderStatusRequest;
+import com.example.Ecommerce.Order.DTOs.response.AdminOrderResponse;
 import com.example.Ecommerce.Order.DTOs.response.ChangeShippingAddressResponse;
 import com.example.Ecommerce.Order.DTOs.response.GetOrderByIdResponse;
 import com.example.Ecommerce.Order.DTOs.response.OrderItemsResponse;
@@ -363,6 +366,16 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order with Order id : " + orderId + " not found"));
 
+    }
+
+    @Override
+    public Page<AdminOrderResponse> getAllOrders(Pageable pageable) {
+        return orderRepository.findAll(pageable).map(order -> new AdminOrderResponse(
+                order.getOrderId(),
+                order.getTotalPrice(),
+                order.getUser().getUsername(),
+                order.getOrderStatus(),
+                order.getOrderDateTime()));
     }
 
     private PlaceOrderResponse buildPlaceOrderResponse(Order order) {

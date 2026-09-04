@@ -8,7 +8,10 @@ import com.example.Ecommerce.Order.DTOs.request.UpdateOrderStatusRequest;
 import com.example.Ecommerce.Order.DTOs.response.ChangeShippingAddressResponse;
 import com.example.Ecommerce.Order.DTOs.response.GetOrderByIdResponse;
 import com.example.Ecommerce.Order.DTOs.response.PlaceOrderResponse;
+import com.example.Ecommerce.Order.DTOs.response.AdminOrderResponse;
 import com.example.Ecommerce.Order.DTOs.response.UpdateOrderStatusResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface OrderService {
 
@@ -29,5 +32,7 @@ public interface OrderService {
     GetOrderByIdResponse getOrderByOrderId(Long orderId);
 
     Order cancelOrder(Long orderId);
+
+    Page<AdminOrderResponse> getAllOrders(Pageable pageable);
 
 }

@@ -13,7 +13,7 @@ import com.example.Ecommerce.Category.Category;
 import com.example.Ecommerce.Category.CategoryRepository;
 import com.example.Ecommerce.Common.DTOs.PagedResponse;
 import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
-import com.example.Ecommerce.Common.FileStorageService;
+import com.example.Ecommerce.Common.CloudinaryService;
 import com.example.Ecommerce.Product.DTOs.request.ProductRequest;
 import com.example.Ecommerce.Product.DTOs.request.UpdateProductRequest;
 import com.example.Ecommerce.Product.DTOs.response.ProductAdminResponse;
@@ -24,13 +24,13 @@ public class ProductServiceImpl implements ProductService {
 
     private ProductRepository productRepository;
     private CategoryRepository categoryRepository;
-    private FileStorageService fileStorageService;
+    private CloudinaryService cloudinaryService;
 
     public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository,
-            FileStorageService fileStorageService) {
+            CloudinaryService cloudinaryService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
-        this.fileStorageService = fileStorageService;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Override
@@ -163,9 +163,13 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Product with productid : " + productId + " not found"));
 
-        fileStorageService.deleteFile(product.getImageUrl());
-        String imageUrl = fileStorageService.storeFile(file);
-        product.setImageUrl(imageUrl);
+        cloudinaryService.deleteImage(product.getImageUrl());
+        try {
+            String imageUrl = cloudinaryService.uploadImage(file);
+            product.setImageUrl(imageUrl);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to upload image to Cloudinary", e);
+        }
 
         Product savedProduct = productRepository.save(product);
 
