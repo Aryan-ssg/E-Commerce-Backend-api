@@ -2,6 +2,7 @@ package com.example.Ecommerce.Order;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,9 +19,15 @@ import com.example.Ecommerce.Common.Exceptions.InvalidTransitionException;
 import com.example.Ecommerce.Common.Exceptions.ResourceNotFoundException;
 import com.example.Ecommerce.Common.Exceptions.UnauthorizedAccessException;
 import com.example.Ecommerce.Order.DTOs.request.ChangeShippingAddressRequest;
+import com.example.Ecommerce.Order.DTOs.request.PlaceOrderRequest;
+import com.example.Ecommerce.Order.DTOs.request.OrderItemsRequest;
 import com.example.Ecommerce.Order.DTOs.request.UpdateOrderStatusRequest;
 import com.example.Ecommerce.Order.DTOs.response.ChangeShippingAddressResponse;
+import com.example.Ecommerce.Order.DTOs.response.PlaceOrderResponse;
 import com.example.Ecommerce.Order.DTOs.response.UpdateOrderStatusResponse;
+import com.example.Ecommerce.Order.OrderItem;
+import com.example.Ecommerce.Product.Product;
+import com.example.Ecommerce.Payment.RazorpayService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -42,6 +49,9 @@ class OrderServiceTest {
 
     @Mock
     private OrderTransactionExecutor orderTransactionExecutor;
+
+    @Mock
+    private RazorpayService razorpayService;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -283,5 +293,101 @@ class OrderServiceTest {
                 .isInstanceOf(InvalidTransitionException.class);
 
         verify(orderRepository, never()).save(any());
+    }
+
+
+    // ── placeOrder ────────────────────────────────────────────────────────
+
+    private PlaceOrderRequest buildPlaceRequest() {
+        PlaceOrderRequest request = new PlaceOrderRequest();
+        request.setAddressLine("123 Main St");
+        request.setPinCode("110001");
+        request.setContactNumber("9876543210");
+        OrderItemsRequest item = new OrderItemsRequest();
+        item.setProductId(100L);
+        item.setQuantity(2);
+        request.setOrderItems(List.of(item));
+        return request;
+    }
+
+    private Order buildSavedOrder(AppUser user) {
+        Product product = new Product();
+        product.setProductId(100L);
+        product.setProductPrice(2000);
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProduct(product);
+        orderItem.setQuantity(2);
+        orderItem.setPriceAtCheckout(2000);
+        Order order = buildOrder(10L, user, OrderStatus.PENDING);
+        order.setContactNumber("9876543210");
+        order.setOrderItems(new ArrayList<>(List.of(orderItem)));
+        order.setTotalPrice(4000);
+        return order;
+    }
+
+    @Test
+    void placeOrder_noRazorpay_delegatesToTransactionExecutor() {
+        PlaceOrderRequest request = buildPlaceRequest();
+        Order saved = buildSavedOrder(owner);
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+        when(orderTransactionExecutor.placeOrderTransactional(request, owner)).thenReturn(saved);
+
+        PlaceOrderResponse response = orderService.placeOrder(request);
+
+        assertThat(response.getOrderId()).isEqualTo(10L);
+        assertThat(response.getContactNumber()).isEqualTo("9876543210");
+        assertThat(response.getAddressLine()).isEqualTo("123 Old Street");
+        verify(orderTransactionExecutor).placeOrderTransactional(request, owner);
+    }
+
+    @Test
+    void placeOrder_withRazorpay_validSignature_delegatesToTransactionExecutor() {
+        PlaceOrderRequest request = buildPlaceRequest();
+        request.setRazorpayOrderId("order_abc");
+        request.setRazorpayPaymentId("pay_123");
+        request.setRazorpaySignature("sig_xyz");
+        Order saved = buildSavedOrder(owner);
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+        when(razorpayService.verifyPaymentSignature("order_abc", "pay_123", "sig_xyz")).thenReturn(true);
+        when(orderTransactionExecutor.placeOrderTransactional(request, owner)).thenReturn(saved);
+
+        PlaceOrderResponse response = orderService.placeOrder(request);
+
+        assertThat(response.getOrderId()).isEqualTo(10L);
+        verify(razorpayService).verifyPaymentSignature("order_abc", "pay_123", "sig_xyz");
+        verify(orderTransactionExecutor).placeOrderTransactional(request, owner);
+    }
+
+    @Test
+    void placeOrder_withRazorpay_invalidSignature_throwsIllegalArgument() {
+        PlaceOrderRequest request = buildPlaceRequest();
+        request.setRazorpayOrderId("order_abc");
+        request.setRazorpayPaymentId("pay_123");
+        request.setRazorpaySignature("bad_sig");
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+        when(razorpayService.verifyPaymentSignature("order_abc", "pay_123", "bad_sig")).thenReturn(false);
+
+        assertThatThrownBy(() -> orderService.placeOrder(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Payment verification failed");
+
+        verify(orderTransactionExecutor, never()).placeOrderTransactional(any(), any());
+    }
+
+    @Test
+    void placeOrder_withRazorpay_verifyThrows_throwsPaymentException() {
+        PlaceOrderRequest request = buildPlaceRequest();
+        request.setRazorpayOrderId("order_abc");
+        request.setRazorpayPaymentId("pay_123");
+        request.setRazorpaySignature("sig_xyz");
+        when(authenticationHelper.getCurrentUser()).thenReturn(owner);
+        when(razorpayService.verifyPaymentSignature("order_abc", "pay_123", "sig_xyz"))
+                .thenThrow(new RazorpayService.PaymentException("Razorpay down"));
+
+        assertThatThrownBy(() -> orderService.placeOrder(request))
+                .isInstanceOf(RazorpayService.PaymentException.class)
+                .hasMessageContaining("Razorpay down");
+
+        verify(orderTransactionExecutor, never()).placeOrderTransactional(any(), any());
     }
 }

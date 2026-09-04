@@ -69,7 +69,7 @@ class CartControllerTest {
     @Test
     void getCart_authenticatedUser_returns200WithCart() throws Exception {
         CartResponse cartResponse = new CartResponse(1L,
-                List.of(item(10L, 100L, "Headphones", 2, 2000)), 4000);
+                List.of(item(10L, 100L, "Headphones", 2, 2000)), 4000, false);
         when(cartService.getCart()).thenReturn(cartResponse);
 
         mockMvc.perform(get("/api/cart").with(user("shopper").roles("USER")))
@@ -92,7 +92,7 @@ class CartControllerTest {
     @Test
     void addToCart_validRequest_returns201AndPassesBody() throws Exception {
         when(cartService.addToCart(any(AddToCartRequest.class)))
-                .thenReturn(new CartResponse(1L, List.of(item(10L, 100L, "Headphones", 2, 2000)), 4000));
+                .thenReturn(new CartResponse(1L, List.of(item(10L, 100L, "Headphones", 2, 2000)), 4000, false));
 
         mockMvc.perform(post("/api/cart/items")
                         .with(user("shopper").roles("USER"))
@@ -123,7 +123,7 @@ class CartControllerTest {
     @Test
     void updateCartItem_returns200AndUpdatesQuantity() throws Exception {
         when(cartService.updateCartItem(eq(100L), any()))
-                .thenReturn(new CartResponse(1L, List.of(item(10L, 100L, "Headphones", 4, 2000)), 8000));
+                .thenReturn(new CartResponse(1L, List.of(item(10L, 100L, "Headphones", 4, 2000)), 8000, false));
 
         mockMvc.perform(put("/api/cart/items/100")
                         .with(user("shopper").roles("USER"))
@@ -138,7 +138,7 @@ class CartControllerTest {
     @Test
     void removeCartItem_returns200AndRemovesItem() throws Exception {
         when(cartService.removeCartItem(100L))
-                .thenReturn(new CartResponse(1L, List.of(), 0));
+                .thenReturn(new CartResponse(1L, List.of(), 0, false));
 
         mockMvc.perform(delete("/api/cart/items/100").with(user("shopper").roles("USER")))
                 .andExpect(status().isOk())

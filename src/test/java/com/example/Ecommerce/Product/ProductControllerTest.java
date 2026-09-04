@@ -67,7 +67,7 @@ class ProductControllerTest {
     private AppUserRepository appUserRepository;
 
     private ProductResponse productResponse() {
-        return new ProductResponse(100L, "Headphones", 2000, "Electronics", null);
+        return new ProductResponse(100L, "Headphones", 2000, "Electronics", null,5);
     }
 
     private ProductAdminResponse productAdminResponse() {
