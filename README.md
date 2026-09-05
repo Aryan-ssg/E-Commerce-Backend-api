@@ -249,7 +249,7 @@ frontend/
 5. Deploy — Hibernate creates tables on first boot (`ddl-auto=update`)
 
 ### Frontend
-Coming soon.
+https://github.com/Aryan-ssg/E-Commerce-Frontend-web
 
 ## License
 
