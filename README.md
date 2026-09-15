@@ -13,6 +13,30 @@ A production-oriented REST API for an e-commerce platform built with **Spring Bo
 - **Lombok** — boilerplate reduction
 - **Testcontainers** — integration tests with real PostgreSQL in Docker
 
+
+## Screenshots
+
+### Customer Experience
+
+[Products]       [Categories]
+<img width="600" height="900" alt="Screenshot from 2026-09-15 13-05-09" src="https://github.com/user-attachments/assets/1c16191b-d3f1-42a0-8a1f-01fe2834d901" /><img width="600" height="831" alt="Screenshot from 2026-09-15 13-06-07" src="https://github.com/user-attachments/assets/25975812-dbe7-4da2-a81e-1d40b3aa3500" />
+
+
+[Product/Cart]    [Checkout]
+
+[Razorpay]        [Orders]
+
+[Login]           [Register]
+
+
+### Admin Dashboard
+
+[Dashboard]
+
+[Users]            [Categories]
+
+[Products]         [Orders]
+
 ### Frontend
 - **React 18 + TypeScript**
 - **Vite** — fast dev server with API proxy
@@ -161,11 +185,8 @@ Runs at **`http://localhost:5173`**. The Vite dev server proxies all `/api` requ
 | `POST` | `/api/public/refresh` | Refresh access token |
 | `GET` | `/api/public/health` | Health check (returns `200 OK`) |
 | `GET` | `/api/public/products` | List products (search/filter) |
-<img width="1598" height="785" alt="Screenshot from 2026-09-15 19-34-15" src="https://github.com/user-attachments/assets/96f864e1-5e0a-4fa0-821d-30e9fba86137" />
-
 | `GET` | `/api/public/products/{id}` | Get product by ID |
 | `GET` | `/api/public/categories` | List categories |
-<img width="1600" height="831" alt="Screenshot from 2026-09-15 13-06-07" src="https://github.com/user-attachments/assets/094cb276-295e-41d3-9fc7-89c20006dabf" />
 
 
 ### User (requires `USER` or `ADMIN` role)
