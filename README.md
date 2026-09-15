@@ -18,7 +18,7 @@ A production-oriented REST API for an e-commerce platform built with **Spring Bo
 
 ### Customer Experience
 
-[Products]                                                          [Categories]
+[Products]                                                           [Categories]
 
 <img width="500" height="600" alt="Screenshot from 2026-09-15 19-34-15" src="https://github.com/user-attachments/assets/6d6aa640-64c0-406d-ac35-b82f768ce1d1" />
 <img width="500" height="600" alt="Screenshot from 2026-09-15 13-06-07" src="https://github.com/user-attachments/assets/25975812-dbe7-4da2-a81e-1d40b3aa3500" />
