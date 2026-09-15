@@ -20,8 +20,8 @@ A production-oriented REST API for an e-commerce platform built with **Spring Bo
 
 [Products]       [Categories]
 
-<img width="400" height="900" alt="Screenshot from 2026-09-15 13-05-09" src="https://github.com/user-attachments/assets/1c16191b-d3f1-42a0-8a1f-01fe2834d901" />
-<img width="400" height="831" alt="Screenshot from 2026-09-15 13-06-07" src="https://github.com/user-attachments/assets/25975812-dbe7-4da2-a81e-1d40b3aa3500" />
+<img width="800" height="900" alt="Screenshot from 2026-09-15 13-05-09" src="https://github.com/user-attachments/assets/1c16191b-d3f1-42a0-8a1f-01fe2834d901" />
+<img width="800" height="831" alt="Screenshot from 2026-09-15 13-06-07" src="https://github.com/user-attachments/assets/25975812-dbe7-4da2-a81e-1d40b3aa3500" />
 
 
 [Product/Cart]    [Checkout]
